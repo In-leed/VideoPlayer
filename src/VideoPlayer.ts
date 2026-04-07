@@ -298,6 +298,7 @@ export class VideoPlayer {
     if (progressBar && !isNaN(this.videoElement.duration)) {
       const progress = (this.videoElement.currentTime / this.videoElement.duration) * 100;
       progressBar.value = progress.toString();
+      progressBar.style.setProperty('--progress', `${progress}%`);
     }
 
     if (currentTimeSpan) {
@@ -347,6 +348,8 @@ export class VideoPlayer {
 
     if (volumeSlider) {
       volumeSlider.value = this.videoElement.volume.toString();
+      const volumePercent = this.videoElement.volume * 100;
+      volumeSlider.style.setProperty('--volume', `${volumePercent}%`);
     }
 
     if (this.videoElement.muted || this.videoElement.volume === 0) {

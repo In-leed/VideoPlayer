@@ -240,7 +240,8 @@
                     onclick="player.setVolume(0.5)">🔉 50% Volume</button> <button onclick="player.toggleMute()">🔇
                     Toggle Mute</button> <button onclick="player.setPlaybackRate(2)">⚡ 2x Speed</button> <button
                     onclick="player.setPlaybackRate(1)">🐢 1x Speed</button> <button
-                    onclick="player.toggleFullscreen()">⛶ Fullscreen</button> </div>
+                    onclick="player.toggleFullscreen()">⛶ Fullscreen</button>
+            </div>
         </div>
         <div class="card">
             <h2>⌨️ Keyboard Shortcuts</h2>
@@ -320,8 +321,7 @@
 
         // Sample video - Using Big Buck Bunny (free test video)
         window.player = new VideoPlayer('#player', {
-            // src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4',
-            src: 'https://www.youtube.com/embed/YE7VzlLtp-4?si=Xhs4VPpxY0DuX2Ut',
+            src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4',
             poster: 'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217',
             controls: true,
             autoplay: false,
