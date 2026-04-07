@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Player Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-source-regular);
+            background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%);
+            min-height: 100vh;
+            padding: 2.5rem 1.25rem;
+            transition: background-color 200ms ease-in-out;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            flex: 1;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-toggle {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 200ms;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            background-color: var(--color-surface);
+            color: var(--color-primary_txt);
+            border: 1px solid var(--color-secondary_border);
+        }
+
+        .theme-toggle:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .card {
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2.5rem;
+            background-color: var(--color-card_bg);
+        }
+
+        .card h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: var(--color-primary_txt);
+        }
+
+        #player {
+            margin-bottom: 1.25rem;
+        }
+
+        .info-panel {
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            background-color: var(--color-primary_bg);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: var(--color-surface);
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: var(--color-secondary_txt);
+        }
+
+        .info-item value {
+            display: block;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--color-primary_txt);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.625rem;
+        }
+
+        .button-group button {
+            border: 0;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.375rem;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms;
+            background-color: var(--color-primary-600);
+            color: white;
+        }
+
+        .button-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-group button:active {
+            transform: translateY(0);
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem;
+            border-radius: 0.375rem;
+            background-color: var(--color-primary_bg);
+        }
+
+        .key {
+            padding: 0.25rem 0.625rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+            background-color: var(--color-primary-600);
+            color: white;
+        }
+
+        .shortcut-desc {
+            font-size: 14px;
+            color: var(--color-secondary_txt);
+        }
+
+        #log {
+            padding: 1rem;
+            border-radius: 0.375rem;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.6;
+            background-color: var(--color-primary_bg);
+            color: var(--color-secondary_txt);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.75rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .info-grid,
+            .shortcuts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Modern Video Player Demo</h1> <button id="theme-toggle" class="theme-toggle"
+                onclick="toggleAppTheme()"> <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+            </button>
+        </div>
+        <div class="card">
+            <div id="player"></div>
+            <div class="info-panel">
+                <h2>Player State</h2>
+                <div class="info-grid">
+                    <div class="info-item"> <label>Status</label>
+                        <value id="status">Paused</value>
+                    </div>
+                    <div class="info-item"> <label>Current Time</label>
+                        <value id="current-time">0:00</value>
+                    </div>
+                    <div class="info-item"> <label>Duration</label>
+                        <value id="duration">0:00</value>
+                    </div>
+                    <div class="info-item"> <label>Volume</label>
+                        <value id="volume">100%</value>
+                    </div>
+                    <div class="info-item"> <label>Playback Rate</label>
+                        <value id="playback-rate">1x</value>
+                    </div>
+                    <div class="info-item"> <label>Fullscreen</label>
+                        <value id="fullscreen">No</value>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>API Controls</h2>
+            <div class="button-group"> <button onclick="player.play()">▶️ Play</button> <button
+                    onclick="player.pause()">⏸️ Pause</button> <button onclick="player.seek(0)">⏮️ Restart</button>
+                <button onclick="player.seek(player.getState().currentTime - 10)">⏪ -10s</button> <button
+                    onclick="player.seek(player.getState().currentTime + 10)">⏩ +10s</button> <button
+                    onclick="player.setVolume(0.5)">🔉 50% Volume</button> <button onclick="player.toggleMute()">🔇
+                    Toggle Mute</button> <button onclick="player.setPlaybackRate(2)">⚡ 2x Speed</button> <button
+                    onclick="player.setPlaybackRate(1)">🐢 1x Speed</button> <button
+                    onclick="player.toggleFullscreen()">⛶ Fullscreen</button> </div>
+        </div>
+        <div class="card">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            <div class="shortcuts-grid">
+                <div class="shortcut-item"> <span class="key">Space</span> <span class="shortcut-desc">Play/Pause</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">K</span>
+                    <span class="shortcut-desc">Play/Pause</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">←</span>
+                    <span class="shortcut-desc">Seek -5s</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">→</span>
+                    <span class="shortcut-desc">Seek +5s</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">↑</span>
+                    <span class="shortcut-desc">Volume Up</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">↓</span>
+                    <span class="shortcut-desc">Volume Down</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">M</span>
+                    <span class="shortcut-desc">Toggle Mute</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">F</span>
+                    <span class="shortcut-desc">Fullscreen</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">P</span>
+                    <span class="shortcut-desc">Picture-in-Picture</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Event Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { VideoPlayer, initTheme, toggleTheme as toggleAppTheme } from '../src/index.ts';
+
+        // Initialize theme
+        initTheme();
+
+        // Theme toggle function
+        window.toggleAppTheme = function () {
+            const newTheme = toggleAppTheme();
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+
+            if (newTheme === 'dark') {
+                icon.textContent = '☀️';
+                text.textContent = 'Light Mode';
+            } else {
+                icon.textContent = '🌙';
+                text.textContent = 'Dark Mode';
+            }
+        };
+
+        // Set initial theme button state
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const icon = document.getElementById('theme-icon');
+        const text = document.getElementById('theme-text');
+        if (currentTheme === 'dark') {
+            icon.textContent = '☀️';
+            text.textContent = 'Light Mode';
+        }
+
+        // Sample video - Using Big Buck Bunny (free test video)
+        window.player = new VideoPlayer('#player', {
+            // src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4',
+            src: 'https://www.youtube.com/embed/YE7VzlLtp-4?si=Xhs4VPpxY0DuX2Ut',
+            poster: 'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217',
+            controls: true,
+            autoplay: false,
+            loop: false,
+            volume: 1,
+            keyboardShortcuts: true,
+        });
+
+        // Log events
+        const logElement = document.getElementById('log');
+        let eventCount = 0;
+
+        function logEvent(eventType, state) {
+            eventCount++;
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${eventCount}. ${eventType.toUpperCase()}`;
+            const newLog = document.createElement('div');
+            newLog.textContent = logEntry;
+            newLog.style.color = getEventColor(eventType);
+            logElement.insertBefore(newLog, logElement.firstChild);
+
+            // Keep only last 50 events
+            while (logElement.children.length > 50) {
+                logElement.removeChild(logElement.lastChild);
+            }
+        }
+
+        function getEventColor(eventType) {
+            const colors = {
+                play: '#4ade80',
+                pause: '#fbbf24',
+                ended: '#ef4444',
+                timeupdate: '#60a5fa',
+                volumechange: '#a78bfa',
+                seeking: '#f472b6',
+                error: '#ef4444',
+            };
+            return colors[eventType] || 'var(--color-secondary_txt)';
+        }
+
+        // Update UI with player state
+        function updateUI(state) {
+            document.getElementById('status').textContent = state.playing ? 'Playing' : 'Paused';
+            document.getElementById('current-time').textContent = formatTime(state.currentTime);
+            document.getElementById('duration').textContent = formatTime(state.duration);
+            document.getElementById('volume').textContent = state.muted ? 'Muted' : `${Math.round(state.volume * 100)}%`;
+            document.getElementById('playback-rate').textContent = `${state.playbackRate}x`;
+            document.getElementById('fullscreen').textContent = state.fullscreen ? 'Yes' : 'No';
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Attach event listeners
+        ['play', 'pause', 'ended', 'volumechange', 'ratechange', 'seeking', 'error', 'fullscreenchange'].forEach(
+            (event) => {
+                player.on(event, (state) => {
+                    logEvent(event, state);
+                    updateUI(state);
+                });
+            }
+        );
+
+        // Update UI on timeupdate (but don't log every update to avoid spam)
+        player.on('timeupdate', (state) => {
+            updateUI(state);
+        });
+
+        // Initial state
+        updateUI(player.getState());
+    </script>
+</body>
+
+</html>
