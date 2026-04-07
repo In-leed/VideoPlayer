@@ -1,0 +1,42 @@
+/* Custom Color System */
+:root {
+  /* fonts */
+  --font-source-regular:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* colors */
+  --color-primary-50: #fbf4ff;
+  --color-primary-100: #f7e9fe;
+  --color-primary-200: #eed2fc;
+  --color-primary-300: #e3aef9;
+  --color-primary-400: #d47df5;
+  --color-primary-500: #be4ce9;
+  --color-primary-600: #a52ccd;
+  --color-primary-700: #8b21ab;
+  --color-primary-800: #731d8b;
+  --color-primary-900: #611d72;
+  --color-primary-950: #3e064c;
+
+  --color-link_txt: #2563eb;
+
+  --color-primary_txt: #111827;
+  --color-secondary_txt: #4b5563;
+  --color-tertiary_txt: #1f2937;
+
+  --color-primary_placeholder_txt: #9ca3af;
+
+  /* background */
+  --color-primary_bg: #f9fafb;
+  --color-secondary_background: #f9fafb;
+  --color-primary_active_bg: var(--color-primary-200);
+  --color-secondary_bg: #6b7280;
+  --color-card_bg: white;
+  --color-surface: white;
+  --color-hover_bg: #f9fafb;
+
+  /* border */
+  --color-primary_border: #f3f4f6;
+  --color-primary_active_border: var(--color-primary-50);
+  --color-secondary_border: #e5e7eb;
+  --color-tertiary_border: #d1d5db;
+}

@@ -1,0 +1,38 @@
+/* Dark Mode Theme */
+[data-theme='dark'] {
+  --color-link_txt: #60a5fa;
+
+  --color-primary_txt: #f9fafb;
+  --color-secondary_txt: #d1d5db;
+  --color-tertiary_txt: #e5e7eb;
+
+  --color-primary_placeholder_txt: #6b7280;
+
+  /* background */
+  --color-primary_bg: #030712;
+  --color-secondary_background: #1f2937;
+  --color-primary_active_bg: #611d72;
+  --color-secondary_bg: #1f2937;
+  --color-card_bg: #111827;
+  --color-surface: #111827;
+  --color-hover_bg: #1f2937;
+
+  /* border */
+  --color-primary_border: #1f2937;
+  --color-primary_active_border: #731d8b;
+  --color-secondary_border: #374151;
+  --color-tertiary_border: #4b5563;
+}
+
+/* Smooth transitions for theme changes */
+:root.theme-transitioning,
+:root.theme-transitioning *,
+:root.theme-transitioning *::before,
+:root.theme-transitioning *::after {
+  transition:
+    background-color 200ms ease-in-out,
+    border-color 200ms ease-in-out,
+    color 200ms ease-in-out,
+    fill 200ms ease-in-out,
+    stroke 200ms ease-in-out !important;
+}

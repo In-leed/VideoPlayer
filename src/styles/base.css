@@ -1,0 +1,31 @@
+/* Video Player Container and Video Element */
+.vp-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  outline: none;
+  background-color: var(--color-card_bg);
+  font-family: var(--font-source-regular);
+  border: 1px solid var(--color-secondary_border);
+}
+
+.vp-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: pointer;
+}
+
+/* Fullscreen styles */
+.vp-container:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+
+.vp-container:fullscreen .vp-video {
+  height: 100%;
+  object-fit: contain;
+}
