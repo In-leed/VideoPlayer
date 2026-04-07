@@ -60,6 +60,7 @@ export class VideoPlayer {
       this.createControls();
     }
 
+    this.createAnimationIcon();
     this.attachEventListeners();
     this.setupKeyboardShortcuts();
     this.applyTheme();
@@ -231,6 +232,13 @@ export class VideoPlayer {
     // PIP change
     this.videoElement.addEventListener('enterpictureinpicture', () => this.emitEvent('pipchange'));
     this.videoElement.addEventListener('leavepictureinpicture', () => this.emitEvent('pipchange'));
+
+    // Click on video to play/pause
+    this.videoElement.addEventListener('click', () => {
+      const willPlay = this.videoElement.paused;
+      this.showPlayPauseAnimation(willPlay);
+      this.togglePlay();
+    });
   }
 
   /**
@@ -245,6 +253,7 @@ export class VideoPlayer {
         case ' ':
         case 'k':
           e.preventDefault();
+          this.showPlayPauseAnimation(this.videoElement.paused);
           this.togglePlay();
           break;
         case 'ArrowLeft':
@@ -284,6 +293,43 @@ export class VideoPlayer {
    */
   private applyTheme(): void {
     this.container.classList.add('vp-container');
+  }
+
+  /**
+   * Create animation icon for play/pause feedback
+   */
+  private createAnimationIcon(): void {
+    const animationIcon = document.createElement('div');
+    animationIcon.className = 'vp-animation-icon';
+    animationIcon.innerHTML = '<span class="vp-animation-icon-content"></span>';
+    this.container.appendChild(animationIcon);
+  }
+
+  /**
+   * Show play/pause animation
+   */
+  private showPlayPauseAnimation(isPlaying: boolean): void {
+    const animationIcon = this.container.querySelector('.vp-animation-icon') as HTMLElement;
+    const iconContent = this.container.querySelector('.vp-animation-icon-content') as HTMLElement;
+    
+    if (!animationIcon || !iconContent) return;
+
+    // Set icon based on new state
+    iconContent.textContent = isPlaying ? '▶' : '⏸';
+    
+    // Remove any existing animation
+    animationIcon.classList.remove('vp-animation-show');
+    
+    // Trigger reflow to restart animation
+    void animationIcon.offsetWidth;
+    
+    // Add animation class
+    animationIcon.classList.add('vp-animation-show');
+    
+    // Remove class after animation completes
+    setTimeout(() => {
+      animationIcon.classList.remove('vp-animation-show');
+    }, 500);
   }
 
   /**
