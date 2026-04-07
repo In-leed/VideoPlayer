@@ -113,8 +113,9 @@ export class VideoPlayer {
           <span class="vp-icon-pause material-symbols-outlined" style="display: none;">pause</span>
         </button>
         <button class="vp-btn vp-volume" aria-label="Volume">
-          <span class="vp-icon-volume material-symbols-outlined">volume_up</span>
-          <span class="vp-icon-muted material-symbols-outlined" style="display: none;">volume_off</span>
+          <span class="vp-icon-volume-high material-symbols-outlined">volume_up</span>
+          <span class="vp-icon-volume-low material-symbols-outlined" style="display: none;">volume_down</span>
+          <span class="vp-icon-volume-muted material-symbols-outlined" style="display: none;">volume_off</span>
         </button>
         <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
         <span class="vp-time">
@@ -389,8 +390,9 @@ export class VideoPlayer {
     if (!this.controlsContainer) return;
 
     const volumeSlider = this.controlsContainer.querySelector('.vp-volume-slider') as HTMLInputElement;
-    const volumeIcon = this.controlsContainer.querySelector('.vp-icon-volume') as HTMLElement;
-    const mutedIcon = this.controlsContainer.querySelector('.vp-icon-muted') as HTMLElement;
+    const volumeHighIcon = this.controlsContainer.querySelector('.vp-icon-volume-high') as HTMLElement;
+    const volumeLowIcon = this.controlsContainer.querySelector('.vp-icon-volume-low') as HTMLElement;
+    const volumeMutedIcon = this.controlsContainer.querySelector('.vp-icon-volume-muted') as HTMLElement;
 
     if (volumeSlider) {
       volumeSlider.value = this.videoElement.volume.toString();
@@ -398,12 +400,19 @@ export class VideoPlayer {
       volumeSlider.style.setProperty('--volume', `${volumePercent}%`);
     }
 
+    // Update volume icon based on volume level
     if (this.videoElement.muted || this.videoElement.volume === 0) {
-      volumeIcon.style.display = 'none';
-      mutedIcon.style.display = 'inline';
+      volumeHighIcon.style.display = 'none';
+      volumeLowIcon.style.display = 'none';
+      volumeMutedIcon.style.display = 'inline';
+    } else if (this.videoElement.volume <= 0.5) {
+      volumeHighIcon.style.display = 'none';
+      volumeLowIcon.style.display = 'inline';
+      volumeMutedIcon.style.display = 'none';
     } else {
-      volumeIcon.style.display = 'inline';
-      mutedIcon.style.display = 'none';
+      volumeHighIcon.style.display = 'inline';
+      volumeLowIcon.style.display = 'none';
+      volumeMutedIcon.style.display = 'none';
     }
   }
 
