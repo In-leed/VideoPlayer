@@ -1,3 +1,24 @@
+/* Material Symbols Font */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+}
+
 /* Custom Color System */
 :root {
   /* fonts */
@@ -126,8 +147,11 @@
   background-color: rgba(0, 0, 0, 0.7);
   border-radius: 50%;
   color: white;
-  font-size: 36px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.vp-animation-icon-content .material-symbols-outlined {
+  font-size: 48px;
 }
 
 @keyframes vp-pulse {
@@ -272,7 +296,6 @@
   border: 0;
   cursor: pointer;
   padding: 6px 10px;
-  font-size: 18px;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
@@ -282,6 +305,10 @@
   transition: all 150ms ease-in-out;
   color: white;
   background-color: transparent;
+}
+
+.vp-btn .material-symbols-outlined {
+  font-size: 24px;
 }
 
 .vp-btn:hover {
@@ -412,7 +439,10 @@
     min-width: 32px;
     height: 32px;
     padding: 4px 8px;
-    font-size: 12px;
+  }
+
+  .vp-btn .material-symbols-outlined {
+    font-size: 20px;
   }
 
   .vp-time {

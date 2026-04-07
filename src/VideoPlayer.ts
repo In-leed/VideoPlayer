@@ -109,12 +109,12 @@ export class VideoPlayer {
       </div>
       <div class="vp-controls-bottom">
         <button class="vp-btn vp-play-pause" aria-label="Play/Pause">
-          <span class="vp-icon-play">▶</span>
-          <span class="vp-icon-pause" style="display: none;">⏸</span>
+          <span class="vp-icon-play material-symbols-outlined">play_arrow</span>
+          <span class="vp-icon-pause material-symbols-outlined" style="display: none;">pause</span>
         </button>
         <button class="vp-btn vp-volume" aria-label="Volume">
-          <span class="vp-icon-volume">🔊</span>
-          <span class="vp-icon-muted" style="display: none;">🔇</span>
+          <span class="vp-icon-volume material-symbols-outlined">volume_up</span>
+          <span class="vp-icon-muted material-symbols-outlined" style="display: none;">volume_off</span>
         </button>
         <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
         <span class="vp-time">
@@ -136,12 +136,12 @@ export class VideoPlayer {
         <button class="vp-btn vp-playback-rate" aria-label="Playback Rate">1x</button>
         ${
           this.options.enablePIP
-            ? '<button class="vp-btn vp-pip" aria-label="Picture in Picture">PIP</button>'
+            ? '<button class="vp-btn vp-pip" aria-label="Picture in Picture"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>'
             : ''
         }
         ${
           this.options.enableFullscreen
-            ? '<button class="vp-btn vp-fullscreen" aria-label="Fullscreen">⛶</button>'
+            ? '<button class="vp-btn vp-fullscreen" aria-label="Fullscreen"><span class="material-symbols-outlined">fullscreen</span></button>'
             : ''
         }
       </div>
@@ -301,7 +301,7 @@ export class VideoPlayer {
   private createAnimationIcon(): void {
     const animationIcon = document.createElement('div');
     animationIcon.className = 'vp-animation-icon';
-    animationIcon.innerHTML = '<span class="vp-animation-icon-content"></span>';
+    animationIcon.innerHTML = '<div class="vp-animation-icon-content"><span class="material-symbols-outlined"></span></div>';
     this.container.appendChild(animationIcon);
   }
 
@@ -310,12 +310,12 @@ export class VideoPlayer {
    */
   private showPlayPauseAnimation(isPlaying: boolean): void {
     const animationIcon = this.container.querySelector('.vp-animation-icon') as HTMLElement;
-    const iconContent = this.container.querySelector('.vp-animation-icon-content') as HTMLElement;
+    const iconContent = this.container.querySelector('.vp-animation-icon-content .material-symbols-outlined') as HTMLElement;
     
     if (!animationIcon || !iconContent) return;
 
     // Set icon based on new state
-    iconContent.textContent = isPlaying ? '▶' : '⏸';
+    iconContent.textContent = isPlaying ? 'play_arrow' : 'pause';
     
     // Remove any existing animation
     animationIcon.classList.remove('vp-animation-show');
