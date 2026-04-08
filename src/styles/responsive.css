@@ -21,4 +21,12 @@
   .vp-volume-slider {
     width: 64px;
   }
+
+  .vp-settings-menu {
+    right: -8px;
+  }
+
+  .vp-settings-menu-item {
+    padding: 12px 16px;
+  }
 }

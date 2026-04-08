@@ -124,14 +124,20 @@ export class VideoPlayer {
         <div class="vp-spacer"></div>
         ${
           this.options.showQualitySelector && this.sources.length > 1
-            ? `<select class="vp-quality-selector">
-                ${this.sources
-                  .map(
-                    (s) =>
-                      `<option value="${s.quality ?? 'auto'}">${s.label ?? s.quality ?? 'Auto'}</option>`
-                  )
-                  .join('')}
-              </select>`
+            ? `<div class="vp-settings-container">
+                <button class="vp-btn vp-settings" aria-label="Settings">
+                  <span class="material-symbols-outlined">settings</span>
+                </button>
+                <div class="vp-settings-menu" style="display: none;">
+                  <div class="vp-settings-menu-header">Quality</div>
+                  ${this.sources
+                    .map(
+                      (s) =>
+                        `<button class="vp-settings-menu-item" data-quality="${s.quality ?? 'auto'}">${s.label ?? s.quality ?? 'Auto'}</button>`
+                    )
+                    .join('')}
+                </div>
+              </div>`
             : ''
         }
         <button class="vp-btn vp-playback-rate" aria-label="Playback Rate">1x</button>
@@ -150,6 +156,7 @@ export class VideoPlayer {
 
     this.container.appendChild(this.controlsContainer);
     this.attachControlsListeners();
+    this.updateQualityMenuUI();
   }
 
   /**
@@ -180,11 +187,35 @@ export class VideoPlayer {
       this.setVolume(parseFloat(target.value));
     });
 
-    // Quality selector
-    const qualitySelector = this.controlsContainer.querySelector('.vp-quality-selector') as HTMLSelectElement;
-    qualitySelector?.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      this.setQuality(target.value);
+    // Settings menu
+    const settingsBtn = this.controlsContainer.querySelector('.vp-settings');
+    settingsBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSettingsMenu();
+    });
+
+    // Quality selection from menu
+    const qualityItems = this.controlsContainer.querySelectorAll('.vp-settings-menu-item');
+    qualityItems.forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const quality = target.getAttribute('data-quality');
+        if (quality) {
+          this.setQuality(quality);
+          this.toggleSettingsMenu();
+        }
+      });
+    });
+
+    // Close settings menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const settingsMenu = this.controlsContainer?.querySelector('.vp-settings-menu') as HTMLElement;
+      if (settingsMenu && settingsMenu.style.display !== 'none') {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.vp-settings-container')) {
+          this.toggleSettingsMenu();
+        }
+      }
     });
 
     // Playback rate
@@ -447,6 +478,41 @@ export class VideoPlayer {
   }
 
   /**
+   * Toggle settings menu
+   */
+  private toggleSettingsMenu(): void {
+    if (!this.controlsContainer) return;
+
+    const settingsMenu = this.controlsContainer.querySelector('.vp-settings-menu') as HTMLElement;
+    if (!settingsMenu) return;
+
+    const isVisible = settingsMenu.style.display !== 'none';
+    settingsMenu.style.display = isVisible ? 'none' : 'block';
+
+    // Update active quality item when opening
+    if (!isVisible) {
+      this.updateQualityMenuUI();
+    }
+  }
+
+  /**
+   * Update quality menu UI to show active quality
+   */
+  private updateQualityMenuUI(): void {
+    if (!this.controlsContainer) return;
+
+    const items = this.controlsContainer.querySelectorAll('.vp-settings-menu-item');
+    items.forEach((item) => {
+      const quality = item.getAttribute('data-quality');
+      if (quality === this.currentQuality) {
+        item.classList.add('vp-active');
+      } else {
+        item.classList.remove('vp-active');
+      }
+    });
+  }
+
+  /**
    * Format time in MM:SS or HH:MM:SS
    */
   private formatTime(seconds: number): string {
@@ -582,6 +648,7 @@ export class VideoPlayer {
       void this.play();
     }
 
+    this.updateQualityMenuUI();
     this.emitEvent('qualitychange');
   }
 

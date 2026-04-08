@@ -5,7 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Video Player Demo</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
         * {
             margin: 0;
@@ -322,13 +323,22 @@
 
         // Sample video - Using Big Buck Bunny (free test video)
         window.player = new VideoPlayer('#player', {
-            src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4',
+            src: [{
+                src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4',
+                type: 'video/mp4',
+                quality: '720p',
+            }, {
+                src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_256kb.mp4',
+                type: 'video/mp4',
+                quality: '480p',
+            }],
             poster: 'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217',
             controls: true,
             autoplay: false,
             loop: false,
             volume: 1,
             keyboardShortcuts: true,
+            showQualitySelector: true,
         });
 
         // Log events
