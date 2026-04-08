@@ -148,8 +148,11 @@
   outline: none;
   -webkit-appearance: none;
   appearance: none;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: transparent;
   transition: all 150ms ease-in-out;
+  /* Increase clickable area */
+  padding: 8px 0;
+  margin: -8px 0;
 }
 
 .vp-volume-container:hover .vp-volume-slider {
@@ -191,8 +194,9 @@
 }
 
 .vp-volume-slider::-webkit-slider-runnable-track {
-  height: 100%;
-  background: linear-gradient(
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  background-image: linear-gradient(
     to right,
     white 0%,
     white var(--volume, 100%),
@@ -201,8 +205,9 @@
 }
 
 .vp-volume-slider::-moz-range-track {
-  height: 100%;
-  background: linear-gradient(
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  background-image: linear-gradient(
     to right,
     white 0%,
     white var(--volume, 100%),
