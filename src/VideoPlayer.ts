@@ -19,6 +19,7 @@ export class VideoPlayer {
   private sources: VideoSource[];
   private currentQuality: string | null = null;
   private hideControlsTimeout: number | null = null;
+  private clickTimeout: number | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
@@ -316,11 +317,31 @@ export class VideoPlayer {
     this.videoElement.addEventListener('enterpictureinpicture', () => this.emitEvent('pipchange'));
     this.videoElement.addEventListener('leavepictureinpicture', () => this.emitEvent('pipchange'));
 
-    // Click on video to play/pause
+    // Click on video to play/pause (with double-click detection)
     this.videoElement.addEventListener('click', () => {
-      const willPlay = this.videoElement.paused;
-      this.showPlayPauseAnimation(willPlay);
-      this.togglePlay();
+      if (this.clickTimeout !== null) {
+        // This is part of a double-click, ignore
+        clearTimeout(this.clickTimeout);
+        this.clickTimeout = null;
+        return;
+      }
+
+      // Wait to see if this is a double-click
+      this.clickTimeout = window.setTimeout(() => {
+        this.clickTimeout = null;
+        const willPlay = this.videoElement.paused;
+        this.showPlayPauseAnimation(willPlay);
+        this.togglePlay();
+      }, 250);
+    });
+
+    // Double-click on video to toggle fullscreen
+    this.videoElement.addEventListener('dblclick', () => {
+      if (this.clickTimeout !== null) {
+        clearTimeout(this.clickTimeout);
+        this.clickTimeout = null;
+      }
+      void this.toggleFullscreen();
     });
   }
 
@@ -882,6 +903,9 @@ export class VideoPlayer {
       this.eventListeners.set(eventType, new Set());
     }
     this.eventListeners.get(eventType)?.add(callback);
+    if (this.clickTimeout !== null) {
+      clearTimeout(this.clickTimeout);
+    }
   }
 
   /**
