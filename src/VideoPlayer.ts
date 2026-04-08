@@ -25,6 +25,10 @@ export class VideoPlayer {
   private currentSubtitle: string | null = null;
   private thumbnailCache: Map<number, string> = new Map();
   private thumbnailCanvas: HTMLCanvasElement | null = null;
+  private isAutoQuality: boolean = false;
+  // @ts-expect-error - stored for potential logging/debugging
+  private networkSpeed: number = 0;
+  private qualityMonitorInterval: number | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
@@ -74,6 +78,11 @@ export class VideoPlayer {
     this.setupKeyboardShortcuts();
     this.setupControlsAutoHide();
     this.applyTheme();
+
+    // Enable auto quality by default if multiple sources available
+    if (this.sources.length > 1) {
+      this.setQuality('auto');
+    }
   }
 
   /**
@@ -166,6 +175,7 @@ export class VideoPlayer {
                 </button>
                 <div class="vp-settings-menu" style="display: none;">
                   <div class="vp-settings-menu-header">Quality</div>
+                  <button class="vp-settings-menu-item" data-quality="auto">Auto <span class="vp-auto-quality-display"></span></button>
                   ${this.sources
                     .map(
                       (s) =>
@@ -1021,12 +1031,33 @@ export class VideoPlayer {
     if (!this.controlsContainer) return;
 
     const items = this.controlsContainer.querySelectorAll('.vp-settings-menu-item');
+    const autoQualityDisplay = this.controlsContainer.querySelector('.vp-auto-quality-display');
+
     items.forEach((item) => {
       const quality = item.getAttribute('data-quality');
-      if (quality === this.currentQuality) {
-        item.classList.add('vp-active');
+      
+      if (this.isAutoQuality) {
+        // When in auto mode, mark "auto" as active
+        if (quality === 'auto') {
+          item.classList.add('vp-active');
+          // Show actual quality in parentheses
+          if (autoQualityDisplay && this.currentQuality !== 'auto') {
+            autoQualityDisplay.textContent = `(${this.currentQuality})`;
+          }
+        } else {
+          item.classList.remove('vp-active');
+        }
       } else {
-        item.classList.remove('vp-active');
+        // When not in auto mode, mark the selected quality
+        if (quality === this.currentQuality) {
+          item.classList.add('vp-active');
+        } else {
+          item.classList.remove('vp-active');
+        }
+        // Clear auto quality display
+        if (autoQualityDisplay) {
+          autoQualityDisplay.textContent = '';
+        }
       }
     });
   }
@@ -1158,6 +1189,15 @@ export class VideoPlayer {
    * Set video quality
    */
   public setQuality(quality: string): void {
+    // Handle auto quality selection
+    if (quality === 'auto') {
+      this.enableAutoQuality();
+      return;
+    }
+
+    // Disable auto quality if switching to manual
+    this.disableAutoQuality();
+
     const source = this.sources.find((s) => s.quality === quality);
     if (!source) return;
 
@@ -1174,6 +1214,143 @@ export class VideoPlayer {
 
     this.updateQualityMenuUI();
     this.emitEvent('qualitychange');
+  }
+
+  /**
+   * Enable auto quality selection based on network speed
+   */
+  private enableAutoQuality(): void {
+    this.isAutoQuality = true;
+    this.currentQuality = 'auto';
+    this.updateQualityMenuUI();
+    
+    // Start monitoring network and adjust quality
+    this.startQualityMonitoring();
+  }
+
+  /**
+   * Disable auto quality selection
+   */
+  private disableAutoQuality(): void {
+    this.isAutoQuality = false;
+    this.stopQualityMonitoring();
+  }
+
+  /**
+   * Start monitoring network conditions
+   */
+  private startQualityMonitoring(): void {
+    // Initial quality selection
+    void this.detectAndSetQuality();
+
+    // Monitor every 10 seconds
+    this.qualityMonitorInterval = window.setInterval(() => {
+      void this.detectAndSetQuality();
+    }, 10000);
+  }
+
+  /**
+   * Stop monitoring network conditions
+   */
+  private stopQualityMonitoring(): void {
+    if (this.qualityMonitorInterval !== null) {
+      clearInterval(this.qualityMonitorInterval);
+      this.qualityMonitorInterval = null;
+    }
+  }
+
+  /**
+   * Detect network speed and set appropriate quality
+   */
+  private async detectAndSetQuality(): Promise<void> {
+    if (!this.isAutoQuality) return;
+
+    // Measure network speed
+    const speed = await this.measureNetworkSpeed();
+    this.networkSpeed = speed;
+
+    // Select quality based on speed (Mbps)
+    let selectedQuality: string | null = null;
+
+    if (speed >= 5) {
+      // Good connection: prefer highest quality
+      selectedQuality = this.getQualityByPriority(['1080p', '720p', '480p', '360p']);
+    } else if (speed >= 2.5) {
+      // Medium connection: prefer 720p
+      selectedQuality = this.getQualityByPriority(['720p', '480p', '360p', '1080p']);
+    } else if (speed >= 1) {
+      // Slow connection: prefer 480p
+      selectedQuality = this.getQualityByPriority(['480p', '360p', '720p']);
+    } else {
+      // Very slow connection: lowest quality
+      selectedQuality = this.getQualityByPriority(['360p', '480p']);
+    }
+
+    // Switch quality if different from current
+    if (selectedQuality && selectedQuality !== this.currentQuality) {
+      const source = this.sources.find((s) => s.quality === selectedQuality);
+      if (source) {
+        const currentTime = this.videoElement.currentTime;
+        const wasPlaying = !this.videoElement.paused;
+
+        this.videoElement.src = source.src;
+        this.videoElement.currentTime = currentTime;
+        this.currentQuality = selectedQuality;
+
+        if (wasPlaying) {
+          await this.play();
+        }
+
+        this.emitEvent('qualitychange');
+      }
+    }
+  }
+
+  /**
+   * Get quality by priority list
+   */
+  private getQualityByPriority(priorities: string[]): string | null {
+    for (const quality of priorities) {
+      if (this.sources.some((s) => s.quality === quality)) {
+        return quality;
+      }
+    }
+    return this.sources[0]?.quality ?? null;
+  }
+
+  /**
+   * Measure network speed in Mbps
+   */
+  private async measureNetworkSpeed(): Promise<number> {
+    // Use Network Information API if available
+    if ('connection' in navigator) {
+      const connection = (navigator as any).connection;
+      if (connection && connection.downlink) {
+        return connection.downlink; // Returns Mbps
+      }
+    }
+
+    // Fallback: measure download speed with a small request
+    try {
+      const startTime = Date.now();
+      await fetch(this.videoElement.src, {
+        method: 'HEAD',
+        cache: 'no-cache'
+      });
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000; // seconds
+
+      // Estimate based on response time (rough estimate)
+      // Faster response = better connection
+      if (duration < 0.1) return 10; // Very fast
+      if (duration < 0.3) return 5; // Fast
+      if (duration < 0.6) return 2.5; // Medium
+      if (duration < 1) return 1; // Slow
+      return 0.5; // Very slow
+    } catch (error) {
+      console.warn('Could not measure network speed:', error);
+      return 2.5; // Default to medium
+    }
   }
 
   /**
@@ -1298,6 +1475,7 @@ export class VideoPlayer {
    */
   public destroy(): void {
     this.clearHideControlsTimer();
+    this.stopQualityMonitoring();
     this.videoElement.pause();
     this.videoElement.src = '';
     this.eventListeners.clear();
