@@ -48,9 +48,7 @@ export class VideoPlayer {
     } as Required<VideoPlayerOptions>;
 
     this.eventListeners = new Map();
-    this.sources = Array.isArray(this.options.src)
-      ? this.options.src
-      : [{ src: this.options.src }];
+    this.sources = Array.isArray(this.options.src) ? this.options.src : [{ src: this.options.src }];
 
     // Initialize player
     this.videoElement = this.createVideoElement();
@@ -72,7 +70,7 @@ export class VideoPlayer {
   private createVideoElement(): HTMLVideoElement {
     const video = document.createElement('video');
     video.className = 'vp-video';
-    
+
     // Set initial quality (first source or specified)
     const initialSource = this.sources[0];
     if (initialSource) {
@@ -143,7 +141,22 @@ export class VideoPlayer {
               </div>`
             : ''
         }
-        <button class="vp-btn vp-playback-rate" aria-label="Playback Rate">1x</button>
+        <div class="vp-speed-container">
+          <button class="vp-btn vp-speed" aria-label="Playback Speed">
+            <span class="material-symbols-outlined">speed</span>
+          </button>
+          <div class="vp-speed-menu" style="display: none;">
+            <div class="vp-speed-menu-header">Speed</div>
+            <button class="vp-speed-menu-item" data-rate="0.25">0.25x</button>
+            <button class="vp-speed-menu-item" data-rate="0.5">0.5x</button>
+            <button class="vp-speed-menu-item" data-rate="0.75">0.75x</button>
+            <button class="vp-speed-menu-item" data-rate="1">Normal</button>
+            <button class="vp-speed-menu-item" data-rate="1.25">1.25x</button>
+            <button class="vp-speed-menu-item" data-rate="1.5">1.5x</button>
+            <button class="vp-speed-menu-item" data-rate="1.75">1.75x</button>
+            <button class="vp-speed-menu-item" data-rate="2">2x</button>
+          </div>
+        </div>
         ${
           this.options.enablePIP
             ? '<button class="vp-btn vp-pip" aria-label="Picture in Picture"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>'
@@ -161,6 +174,7 @@ export class VideoPlayer {
     this.container.appendChild(this.controlsContainer);
     this.attachControlsListeners();
     this.updateQualityMenuUI();
+    this.updateSpeedMenuUI();
   }
 
   /**
@@ -185,7 +199,9 @@ export class VideoPlayer {
     const volumeBtn = this.controlsContainer.querySelector('.vp-volume');
     volumeBtn?.addEventListener('click', () => this.toggleMute());
 
-    const volumeSlider = this.controlsContainer.querySelector('.vp-volume-slider') as HTMLInputElement;
+    const volumeSlider = this.controlsContainer.querySelector(
+      '.vp-volume-slider'
+    ) as HTMLInputElement;
     volumeSlider?.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement;
       this.setVolume(parseFloat(target.value));
@@ -213,7 +229,9 @@ export class VideoPlayer {
 
     // Close settings menu when clicking outside
     document.addEventListener('click', (e) => {
-      const settingsMenu = this.controlsContainer?.querySelector('.vp-settings-menu') as HTMLElement;
+      const settingsMenu = this.controlsContainer?.querySelector(
+        '.vp-settings-menu'
+      ) as HTMLElement;
       if (settingsMenu && settingsMenu.style.display !== 'none') {
         const target = e.target as HTMLElement;
         if (!target.closest('.vp-settings-container')) {
@@ -222,9 +240,36 @@ export class VideoPlayer {
       }
     });
 
-    // Playback rate
-    const rateBtn = this.controlsContainer.querySelector('.vp-playback-rate');
-    rateBtn?.addEventListener('click', () => this.cyclePlaybackRate());
+    // Playback rate menu
+    const speedBtn = this.controlsContainer.querySelector('.vp-speed');
+    speedBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSpeedMenu();
+    });
+
+    // Speed selection from menu
+    const speedItems = this.controlsContainer.querySelectorAll('.vp-speed-menu-item');
+    speedItems.forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const rate = target.getAttribute('data-rate');
+        if (rate) {
+          this.setPlaybackRate(parseFloat(rate));
+          this.toggleSpeedMenu();
+        }
+      });
+    });
+
+    // Close speed menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const speedMenu = this.controlsContainer?.querySelector('.vp-speed-menu') as HTMLElement;
+      if (speedMenu && speedMenu.style.display !== 'none') {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.vp-speed-container')) {
+          this.toggleSpeedMenu();
+        }
+      }
+    });
 
     // PIP
     const pipBtn = this.controlsContainer.querySelector('.vp-pip');
@@ -337,7 +382,8 @@ export class VideoPlayer {
   private createAnimationIcon(): void {
     const animationIcon = document.createElement('div');
     animationIcon.className = 'vp-animation-icon';
-    animationIcon.innerHTML = '<div class="vp-animation-icon-content"><span class="material-symbols-outlined"></span></div>';
+    animationIcon.innerHTML =
+      '<div class="vp-animation-icon-content"><span class="material-symbols-outlined"></span></div>';
     this.container.appendChild(animationIcon);
   }
 
@@ -346,22 +392,24 @@ export class VideoPlayer {
    */
   private showPlayPauseAnimation(isPlaying: boolean): void {
     const animationIcon = this.container.querySelector('.vp-animation-icon') as HTMLElement;
-    const iconContent = this.container.querySelector('.vp-animation-icon-content .material-symbols-outlined') as HTMLElement;
-    
+    const iconContent = this.container.querySelector(
+      '.vp-animation-icon-content .material-symbols-outlined'
+    ) as HTMLElement;
+
     if (!animationIcon || !iconContent) return;
 
     // Set icon based on new state
     iconContent.textContent = isPlaying ? 'play_arrow' : 'pause';
-    
+
     // Remove any existing animation
     animationIcon.classList.remove('vp-animation-show');
-    
+
     // Trigger reflow to restart animation
     void animationIcon.offsetWidth;
-    
+
     // Add animation class
     animationIcon.classList.add('vp-animation-show');
-    
+
     // Remove class after animation completes
     setTimeout(() => {
       animationIcon.classList.remove('vp-animation-show');
@@ -424,10 +472,18 @@ export class VideoPlayer {
   private updateVolumeUI(): void {
     if (!this.controlsContainer) return;
 
-    const volumeSlider = this.controlsContainer.querySelector('.vp-volume-slider') as HTMLInputElement;
-    const volumeHighIcon = this.controlsContainer.querySelector('.vp-icon-volume-high') as HTMLElement;
-    const volumeLowIcon = this.controlsContainer.querySelector('.vp-icon-volume-low') as HTMLElement;
-    const volumeMutedIcon = this.controlsContainer.querySelector('.vp-icon-volume-muted') as HTMLElement;
+    const volumeSlider = this.controlsContainer.querySelector(
+      '.vp-volume-slider'
+    ) as HTMLInputElement;
+    const volumeHighIcon = this.controlsContainer.querySelector(
+      '.vp-icon-volume-high'
+    ) as HTMLElement;
+    const volumeLowIcon = this.controlsContainer.querySelector(
+      '.vp-icon-volume-low'
+    ) as HTMLElement;
+    const volumeMutedIcon = this.controlsContainer.querySelector(
+      '.vp-icon-volume-muted'
+    ) as HTMLElement;
 
     if (volumeSlider) {
       volumeSlider.value = this.videoElement.volume.toString();
@@ -457,10 +513,42 @@ export class VideoPlayer {
   private updateRateUI(): void {
     if (!this.controlsContainer) return;
 
-    const rateBtn = this.controlsContainer.querySelector('.vp-playback-rate');
-    if (rateBtn) {
-      rateBtn.textContent = `${this.videoElement.playbackRate}x`;
+    this.updateSpeedMenuUI();
+  }
+
+  /**
+   * Toggle speed menu
+   */
+  private toggleSpeedMenu(): void {
+    if (!this.controlsContainer) return;
+
+    const speedMenu = this.controlsContainer.querySelector('.vp-speed-menu') as HTMLElement;
+    if (!speedMenu) return;
+
+    const isVisible = speedMenu.style.display !== 'none';
+    speedMenu.style.display = isVisible ? 'none' : 'block';
+
+    // Update active speed item when opening
+    if (!isVisible) {
+      this.updateSpeedMenuUI();
     }
+  }
+
+  /**
+   * Update speed menu UI to show active speed
+   */
+  private updateSpeedMenuUI(): void {
+    if (!this.controlsContainer) return;
+
+    const items = this.controlsContainer.querySelectorAll('.vp-speed-menu-item');
+    items.forEach((item) => {
+      const rate = parseFloat(item.getAttribute('data-rate') ?? '1');
+      if (rate === this.videoElement.playbackRate) {
+        item.classList.add('vp-active');
+      } else {
+        item.classList.remove('vp-active');
+      }
+    });
   }
 
   /**
