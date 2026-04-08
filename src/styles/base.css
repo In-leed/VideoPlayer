@@ -9,6 +9,16 @@
   background-color: var(--color-card_bg);
   font-family: var(--font-source-regular);
   border: 1px solid var(--color-secondary_border);
+  transition: cursor 0.3s ease;
+}
+
+/* Hide cursor when controls are hidden */
+.vp-container:not(.vp-controls-visible) {
+  cursor: none;
+}
+
+.vp-container:not(.vp-controls-visible) .vp-video {
+  cursor: none;
 }
 
 .vp-video {
