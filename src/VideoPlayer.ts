@@ -339,7 +339,9 @@ export class VideoPlayer {
 
     // Close subtitle menu when clicking outside
     document.addEventListener('click', (e) => {
-      const subtitleMenu = this.controlsContainer?.querySelector('.vp-subtitle-menu') as HTMLElement;
+      const subtitleMenu = this.controlsContainer?.querySelector(
+        '.vp-subtitle-menu'
+      ) as HTMLElement;
       if (subtitleMenu && subtitleMenu.style.display !== 'none') {
         const target = e.target as HTMLElement;
         if (!target.closest('.vp-subtitle-container')) {
@@ -383,6 +385,12 @@ export class VideoPlayer {
     this.videoElement.addEventListener('error', () => this.handleError());
     this.videoElement.addEventListener('progress', () => this.updateBuffer());
     this.videoElement.addEventListener('loadedmetadata', () => this.updateDuration());
+
+    // Text track cue change - adjust subtitle position when new cues load
+    this.videoElement.textTracks.addEventListener('change', () => {
+      const controlsVisible = this.container.classList.contains('vp-controls-visible');
+      this.adjustSubtitlePosition(controlsVisible);
+    });
 
     // Fullscreen change
     document.addEventListener('fullscreenchange', () => this.emitEvent('fullscreenchange'));
@@ -505,6 +513,7 @@ export class VideoPlayer {
    */
   private showControls(): void {
     this.container.classList.add('vp-controls-visible');
+    this.adjustSubtitlePosition(true);
   }
 
   /**
@@ -513,6 +522,29 @@ export class VideoPlayer {
   private hideControls(): void {
     if (!this.videoElement.paused) {
       this.container.classList.remove('vp-controls-visible');
+      this.adjustSubtitlePosition(false);
+    }
+  }
+
+  /**
+   * Adjust subtitle position based on controls visibility
+   */
+  private adjustSubtitlePosition(controlsVisible: boolean): void {
+    const tracks = this.videoElement.textTracks;
+    
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (track && track.mode === 'showing' && track.cues) {
+        for (let j = 0; j < track.cues.length; j++) {
+          const cue = track.cues[j] as VTTCue;
+          if (cue) {
+            // Move subtitles up when controls are visible
+            // -3 means 3 lines from bottom (above controls)
+            // -1 is default (1 line from bottom)
+            cue.line = controlsVisible ? -5 : -1;
+          }
+        }
+      }
     }
   }
 
@@ -956,9 +988,9 @@ export class VideoPlayer {
    */
   public setSubtitle(lang: string): void {
     const tracks = this.videoElement.textTracks;
-    
+
     // Disable all tracks first
-    for (let i = 0; i < tracks.length; i++) {
+    for (let i = 0; i< tracks.length; i++) {
       tracks[i]!.mode = 'hidden';
     }
 
@@ -968,6 +1000,11 @@ export class VideoPlayer {
       if (track.language === lang) {
         track.mode = 'showing';
         this.currentSubtitle = lang;
+        
+        // Adjust position immediately if controls are visible
+        const controlsVisible = this.container.classList.contains('vp-controls-visible');
+        this.adjustSubtitlePosition(controlsVisible);
+        
         this.updateSubtitleMenuUI();
         this.emitEvent('subtitlechange');
         return;
@@ -980,7 +1017,7 @@ export class VideoPlayer {
    */
   public disableSubtitles(): void {
     const tracks = this.videoElement.textTracks;
-    
+
     for (let i = 0; i < tracks.length; i++) {
       tracks[i]!.mode = 'hidden';
     }
