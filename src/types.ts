@@ -30,8 +30,10 @@ export interface VideoPlayerOptions {
   keyboardShortcuts?: boolean;
   /** Subtitle tracks */
   subtitles?: SubtitleTrack[];
-  /** Thumbnail preview configuration */
-  thumbnails?: ThumbnailConfig;
+  /** Enable thumbnail preview (default: false) */
+  enableThumbnails?: boolean;
+  /** Thumbnail capture interval in seconds (default: 5) */
+  thumbnailInterval?: number;
 }
 
 /**
@@ -53,26 +55,6 @@ export interface SubtitleTrack {
   srclang: string;
   kind?: 'subtitles' | 'captions';
   default?: boolean;
-}
-
-/**
- * Thumbnail preview configuration
- */
-export interface ThumbnailConfig {
-  /** URL to the thumbnail sprite sheet image */
-  src: string;
-  /** Width of each thumbnail in pixels */
-  width: number;
-  /** Height of each thumbnail in pixels */
-  height: number;
-  /** Number of columns in the sprite sheet */
-  columns: number;
-  /** Number of rows in the sprite sheet */
-  rows: number;
-  /** Total number of thumbnails */
-  count: number;
-  /** Interval between thumbnails in seconds */
-  interval: number;
 }
 
 /**

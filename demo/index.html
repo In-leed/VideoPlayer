@@ -324,15 +324,15 @@
         // Sample video - Using Big Buck Bunny (free test video)
         window.player = new VideoPlayer('#player', {
             src: [{
-                src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4',
+                src: 'video.mp4',
                 type: 'video/mp4',
                 quality: '720p',
             }, {
-                src: 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_256kb.mp4',
+                src: 'video.mp4',
                 type: 'video/mp4',
                 quality: '480p',
             }],
-            poster: 'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217',
+            poster: 'poster.png',
             subtitles: [
                 {
                     src: 'subtitles-en.vtt',
@@ -366,6 +366,7 @@
             volume: 1,
             keyboardShortcuts: true,
             showQualitySelector: true,
+            enableThumbnails: true,
         });
 
         // Log events

@@ -6,7 +6,6 @@ import type {
   EventCallback,
   PlayerError,
   SubtitleTrack,
-  ThumbnailConfig,
 } from './types';
 
 /**
@@ -24,7 +23,8 @@ export class VideoPlayer {
   private clickTimeout: number | null = null;
   private subtitles: SubtitleTrack[];
   private currentSubtitle: string | null = null;
-  private thumbnails: ThumbnailConfig | null = null;
+  private thumbnailCache: Map<number, string> = new Map();
+  private thumbnailCanvas: HTMLCanvasElement | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
@@ -53,13 +53,13 @@ export class VideoPlayer {
       showQualitySelector: options.showQualitySelector ?? false,
       keyboardShortcuts: options.keyboardShortcuts ?? true,
       subtitles: options.subtitles ?? [],
-      thumbnails: options.thumbnails,
+      enableThumbnails: options.enableThumbnails ?? false,
+      thumbnailInterval: options.thumbnailInterval ?? 5,
     } as Required<VideoPlayerOptions>;
 
     this.eventListeners = new Map();
     this.sources = Array.isArray(this.options.src) ? this.options.src : [{ src: this.options.src }];
     this.subtitles = this.options.subtitles ?? [];
-    this.thumbnails = options.thumbnails ?? null;
 
     // Initialize player
     this.videoElement = this.createVideoElement();
@@ -82,6 +82,11 @@ export class VideoPlayer {
   private createVideoElement(): HTMLVideoElement {
     const video = document.createElement('video');
     video.className = 'vp-video';
+
+    // Enable CORS for thumbnail capture
+    if (this.options.enableThumbnails) {
+      video.crossOrigin = 'anonymous';
+    }
 
     // Set initial quality (first source or specified)
     const initialSource = this.sources[0];
@@ -129,7 +134,7 @@ export class VideoPlayer {
     this.controlsContainer.innerHTML = `
       <div class="vp-progress-container">
         <div class="vp-progress-preview" style="display: none;">
-          ${this.thumbnails ? '<div class="vp-progress-preview-thumbnail"></div>' : ''}
+          ${this.options.enableThumbnails ? '<div class="vp-progress-preview-thumbnail"></div>' : ''}
           <div class="vp-progress-preview-time">0:00</div>
         </div>
         <input type="range" class="vp-progress" min="0" max="100" value="0" step="0.1">
@@ -397,7 +402,12 @@ export class VideoPlayer {
     this.videoElement.addEventListener('canplay', () => this.emitEvent('canplay'));
     this.videoElement.addEventListener('error', () => this.handleError());
     this.videoElement.addEventListener('progress', () => this.updateBuffer());
-    this.videoElement.addEventListener('loadedmetadata', () => this.updateDuration());
+    this.videoElement.addEventListener('loadedmetadata', () => {
+      this.updateDuration();
+      if (this.options.enableThumbnails) {
+        this.generateThumbnails();
+      }
+    });
 
     // Text track cue change - adjust subtitle position when new cues load
     this.videoElement.textTracks.addEventListener('change', () => {
@@ -818,8 +828,8 @@ export class VideoPlayer {
     previewTime.textContent = this.formatTime(time);
 
     // Update thumbnail if available
-    if (this.thumbnails) {
-      this.updateThumbnailPreview(time);
+    if (this.options.enableThumbnails) {
+      void this.updateThumbnailPreview(time);
     }
 
     // Position preview
@@ -846,31 +856,126 @@ export class VideoPlayer {
   }
 
   /**
+   * Generate thumbnails from video
+   */
+  private async generateThumbnails(): Promise<void> {
+    // Initialize canvas for capturing frames
+    if (!this.thumbnailCanvas) {
+      this.thumbnailCanvas = document.createElement('canvas');
+      this.thumbnailCanvas.width = 160;
+      this.thumbnailCanvas.height = 90;
+    }
+  }
+
+  /**
+   * Capture thumbnail on-demand at specific time
+   */
+  private async captureThumbnailOnDemand(time: number): Promise<string | null> {
+    if (!this.thumbnailCanvas) {
+      this.thumbnailCanvas = document.createElement('canvas');
+      this.thumbnailCanvas.width = 160;
+      this.thumbnailCanvas.height = 90;
+    }
+
+    const ctx = this.thumbnailCanvas.getContext('2d');
+    if (!ctx) return null;
+
+    return new Promise((resolve) => {
+      // Create a temporary video element for thumbnail capture
+      const tempVideo = document.createElement('video');
+      tempVideo.src = this.videoElement.src;
+      tempVideo.crossOrigin = 'anonymous';
+      tempVideo.muted = true;
+      tempVideo.preload = 'metadata';
+      
+      let resolved = false;
+      
+      const cleanup = () => {
+        tempVideo.removeEventListener('seeked', captureFrame);
+        tempVideo.removeEventListener('loadedmetadata', onMetadataLoaded);
+        tempVideo.removeEventListener('error', onError);
+        tempVideo.src = '';
+      };
+
+      const captureFrame = () => {
+        if (resolved) return;
+        resolved = true;
+        
+        try {
+          // Draw current frame to canvas
+          ctx.drawImage(tempVideo, 0, 0, this.thumbnailCanvas!.width, this.thumbnailCanvas!.height);
+          
+          // Store as data URL
+          const dataUrl = this.thumbnailCanvas!.toDataURL('image/jpeg', 0.7);
+          
+          cleanup();
+          resolve(dataUrl);
+        } catch (error) {
+          console.error('Error capturing thumbnail:', error);
+          cleanup();
+          resolve(null);
+        }
+      };
+
+      const onMetadataLoaded = () => {
+        tempVideo.currentTime = time;
+      };
+
+      const onError = () => {
+        if (resolved) return;
+        resolved = true;
+        console.error('Error loading video for thumbnail');
+        cleanup();
+        resolve(null);
+      };
+
+      // Set timeout to avoid hanging
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(null);
+        }
+      }, 3000);
+
+      tempVideo.addEventListener('seeked', captureFrame);
+      tempVideo.addEventListener('loadedmetadata', onMetadataLoaded);
+      tempVideo.addEventListener('error', onError);
+      tempVideo.load();
+    });
+  }
+
+  /**
    * Update thumbnail in progress preview
    */
-  private updateThumbnailPreview(time: number): void {
-    if (!this.thumbnails || !this.controlsContainer) return;
+  private async updateThumbnailPreview(time: number): Promise<void> {
+    if (!this.options.enableThumbnails || !this.controlsContainer) return;
 
     const thumbnail = this.controlsContainer.querySelector('.vp-progress-preview-thumbnail') as HTMLElement;
     if (!thumbnail) return;
 
-    // Calculate which thumbnail to show
-    const index = Math.floor(time / this.thumbnails.interval);
-    const safeIndex = Math.min(index, this.thumbnails.count - 1);
-
-    // Calculate position in sprite sheet
-    const row = Math.floor(safeIndex / this.thumbnails.columns);
-    const col = safeIndex % this.thumbnails.columns;
+    // Find nearest thumbnail time based on interval
+    const interval = this.options.thumbnailInterval;
+    const nearestTime = Math.floor(time / interval) * interval;
     
-    const x = col * this.thumbnails.width;
-    const y = row * this.thumbnails.height;
-
-    // Set background
-    thumbnail.style.width = `${this.thumbnails.width}px`;
-    thumbnail.style.height = `${this.thumbnails.height}px`;
-    thumbnail.style.backgroundImage = `url(${this.thumbnails.src})`;
-    thumbnail.style.backgroundPosition = `-${x}px -${y}px`;
-    thumbnail.style.backgroundSize = `${this.thumbnails.columns * this.thumbnails.width}px ${this.thumbnails.rows * this.thumbnails.height}px`;
+    // Check if we already have this thumbnail cached
+    let thumbnailUrl = this.thumbnailCache.get(nearestTime) || null;
+    
+    if (!thumbnailUrl) {
+      // Capture on-demand if not cached
+      thumbnailUrl = await this.captureThumbnailOnDemand(nearestTime);
+      if (thumbnailUrl) {
+        this.thumbnailCache.set(nearestTime, thumbnailUrl);
+      }
+    }
+    
+    if (thumbnailUrl) {
+      thumbnail.style.width = '160px';
+      thumbnail.style.height = '90px';
+      thumbnail.style.backgroundImage = `url(${thumbnailUrl})`;
+      thumbnail.style.backgroundSize = 'cover';
+      thumbnail.style.backgroundPosition = 'center';
+    }
   }
 
   /**
@@ -1196,6 +1301,8 @@ export class VideoPlayer {
     this.videoElement.pause();
     this.videoElement.src = '';
     this.eventListeners.clear();
+    this.thumbnailCache.clear();
+    this.thumbnailCanvas = null;
     this.container.innerHTML = '';
   }
 }

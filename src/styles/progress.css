@@ -35,11 +35,19 @@
   background-repeat: no-repeat;
   border-radius: 4px;
   overflow: hidden;
+  min-width: 160px;
+  min-height: 90px;
+  background-color: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .vp-progress-preview-time {
   color: white;
-  font-size: 12px;
+  font-size: 14px;
+  text-align: center;
+  padding: 8px 0px;
   font-weight: 500;
   white-space: nowrap;
   font-family: var(--font-source-regular);
