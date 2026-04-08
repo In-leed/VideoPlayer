@@ -102,6 +102,44 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Right Controls Container */
+.vp-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 40px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: all 150ms ease-in-out;
+}
+
+.vp-right-controls:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Buttons inside right controls glass container */
+.vp-right-controls .vp-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-width: 24px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.vp-right-controls .vp-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.vp-right-controls .vp-btn:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
 /* Volume Slider */
 .vp-volume-slider {
   width: 0;
@@ -185,7 +223,10 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 0 12px;
+  height: 40px;
+  display: flex;
+  align-items: center;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }

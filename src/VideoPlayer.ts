@@ -124,6 +124,7 @@ export class VideoPlayer {
           <span class="vp-current-time">0:00</span> / <span class="vp-duration">0:00</span>
         </span>
         <div class="vp-spacer"></div>
+        <div class="vp-right-controls">
         ${
           this.options.showQualitySelector && this.sources.length > 1
             ? `<div class="vp-settings-container">
@@ -153,6 +154,7 @@ export class VideoPlayer {
             ? '<button class="vp-btn vp-fullscreen" aria-label="Fullscreen"><span class="material-symbols-outlined">fullscreen</span></button>'
             : ''
         }
+        </div>
       </div>
     `;
 
@@ -567,6 +569,7 @@ export class VideoPlayer {
     try {
       await this.videoElement.play();
       this.updatePlayPauseUI();
+      this.showPlayPauseAnimation(true);
     } catch (error) {
       console.error('Play error:', error);
     }
@@ -578,6 +581,7 @@ export class VideoPlayer {
   public pause(): void {
     this.videoElement.pause();
     this.updatePlayPauseUI();
+    this.showPlayPauseAnimation(false);
   }
 
   /**
