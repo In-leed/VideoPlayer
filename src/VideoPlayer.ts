@@ -7,6 +7,13 @@ import type {
   PlayerError,
   SubtitleTrack,
 } from './types';
+import { EventManager } from './events/EventManager';
+import { UIManager } from './ui/UIManager';
+import { MenuManager } from './menu/MenuManager';
+import { QualityManager } from './quality/QualityManager';
+import { ThumbnailManager } from './thumbnail/ThumbnailManager';
+import { ControlsManager } from './controls/ControlsManager';
+import { clamp } from './utils/helpers';
 
 /**
  * Modern HTML5 Video Player with custom controls
@@ -14,36 +21,82 @@ import type {
 export class VideoPlayer {
   private container: HTMLElement;
   private videoElement: HTMLVideoElement;
-  private controlsContainer: HTMLElement | null = null;
   private options: Required<VideoPlayerOptions>;
-  private eventListeners: Map<PlayerEventType, Set<EventCallback>>;
   private sources: VideoSource[];
-  private currentQuality: string | null = null;
-  private hideControlsTimeout: number | null = null;
-  private clickTimeout: number | null = null;
   private subtitles: SubtitleTrack[];
   private currentSubtitle: string | null = null;
-  private thumbnailCache: Map<number, string> = new Map();
-  private thumbnailCanvas: HTMLCanvasElement | null = null;
-  private isAutoQuality: boolean = false;
-  // @ts-expect-error - stored for potential logging/debugging
-  private networkSpeed: number = 0;
-  private qualityMonitorInterval: number | null = null;
+  private clickTimeout: number | null = null;
+
+  // Managers
+  private eventManager: EventManager;
+  private uiManager: UIManager | null = null;
+  private menuManager: MenuManager | null = null;
+  private qualityManager: QualityManager;
+  private thumbnailManager: ThumbnailManager | null = null;
+  private controlsManager: ControlsManager | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
+    this.container = this.resolveContainer(container);
+
+    // Set default options
+    this.options = this.setDefaultOptions(options);
+
+    // Initialize sources and subtitles
+    this.sources = Array.isArray(this.options.src) ? this.options.src : [{ src: this.options.src }];
+    this.subtitles = this.options.subtitles ?? [];
+
+    // Initialize event manager
+    this.eventManager = new EventManager();
+
+    // Create video element
+    this.videoElement = this.createVideoElement();
+    this.container.appendChild(this.videoElement);
+
+    // Initialize quality manager
+    const currentQuality = this.sources[0]?.quality ?? null;
+    this.qualityManager = new QualityManager(
+      this.videoElement,
+      this.sources,
+      currentQuality,
+      () => this.handleQualityChange()
+    );
+
+    // Create controls if enabled
+    if (this.options.controls) {
+      this.initializeControls();
+    }
+
+    // Attach event listeners
+    this.attachVideoEventListeners();
+    this.setupKeyboardShortcuts();
+    this.applyTheme();
+
+    // Enable auto quality by default if multiple sources available
+    if (this.sources.length > 1) {
+      this.qualityManager.setQuality('auto');
+    }
+  }
+
+  /**
+   * Resolve container from string or element
+   */
+  private resolveContainer(container: HTMLElement | string): HTMLElement {
     if (typeof container === 'string') {
       const element = document.querySelector(container);
       if (!element) {
         throw new Error(`Container not found: ${container}`);
       }
-      this.container = element as HTMLElement;
-    } else {
-      this.container = container;
+      return element as HTMLElement;
     }
+    return container;
+  }
 
-    // Set default options
-    this.options = {
+  /**
+   * Set default options
+   */
+  private setDefaultOptions(options: VideoPlayerOptions): Required<VideoPlayerOptions> {
+    return {
       src: options.src,
       controls: options.controls ?? true,
       autoplay: options.autoplay ?? false,
@@ -61,29 +114,6 @@ export class VideoPlayer {
       thumbnailInterval: options.thumbnailInterval ?? 5,
       customStyles: options.customStyles,
     } as Required<VideoPlayerOptions>;
-
-    this.eventListeners = new Map();
-    this.sources = Array.isArray(this.options.src) ? this.options.src : [{ src: this.options.src }];
-    this.subtitles = this.options.subtitles ?? [];
-
-    // Initialize player
-    this.videoElement = this.createVideoElement();
-    this.container.appendChild(this.videoElement);
-
-    if (this.options.controls) {
-      this.createControls();
-    }
-
-    this.createAnimationIcon();
-    this.attachEventListeners();
-    this.setupKeyboardShortcuts();
-    this.setupControlsAutoHide();
-    this.applyTheme();
-
-    // Enable auto quality by default if multiple sources available
-    if (this.sources.length > 1) {
-      this.setQuality('auto');
-    }
   }
 
   /**
@@ -93,19 +123,16 @@ export class VideoPlayer {
     const video = document.createElement('video');
     video.className = 'vp-video';
 
-    // Enable CORS for thumbnail capture
     if (this.options.enableThumbnails) {
       video.crossOrigin = 'anonymous';
     }
 
-    // Set initial quality (first source or specified)
     const initialSource = this.sources[0];
     if (initialSource) {
       video.src = initialSource.src;
       if (initialSource.type) {
         video.setAttribute('type', initialSource.type);
       }
-      this.currentQuality = initialSource.quality ?? null;
     }
 
     if (this.options.poster) {
@@ -118,7 +145,6 @@ export class VideoPlayer {
     video.volume = this.options.volume;
     video.playbackRate = this.options.playbackRate;
 
-    // Add subtitle tracks
     this.subtitles.forEach((subtitle) => {
       const track = document.createElement('track');
       track.kind = subtitle.kind ?? 'subtitles';
@@ -136,277 +162,177 @@ export class VideoPlayer {
   }
 
   /**
-   * Create custom controls
+   * Initialize controls and managers
    */
-  private createControls(): void {
-    this.controlsContainer = document.createElement('div');
-    this.controlsContainer.className = 'vp-controls';
-    this.controlsContainer.innerHTML = `
-      <div class="vp-progress-container">
-        <div class="vp-progress-preview" style="display: none;">
-          ${this.options.enableThumbnails ? '<div class="vp-progress-preview-thumbnail"></div>' : ''}
-          <div class="vp-progress-preview-time">0:00</div>
-        </div>
-        <input type="range" class="vp-progress" min="0" max="100" value="0" step="0.1">
-        <div class="vp-buffer"></div>
-      </div>
-      <div class="vp-controls-bottom">
-        <button class="vp-btn vp-play-pause" aria-label="Play/Pause">
-          <span class="vp-icon-play material-symbols-outlined">play_arrow</span>
-          <span class="vp-icon-pause material-symbols-outlined" style="display: none;">pause</span>
-        </button>
-        <div class="vp-volume-container">
-          <button class="vp-btn vp-volume" aria-label="Volume">
-            <span class="vp-icon-volume-high material-symbols-outlined">volume_up</span>
-            <span class="vp-icon-volume-low material-symbols-outlined" style="display: none;">volume_down</span>
-            <span class="vp-icon-volume-muted material-symbols-outlined" style="display: none;">volume_off</span>
-          </button>
-          <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
-        </div>
-        <span class="vp-time">
-          <span class="vp-current-time">0:00</span> <span class="vp-time-separator">/</span> <span class="vp-duration">0:00</span>
-        </span>
-        <div class="vp-spacer"></div>
-        <div class="vp-right-controls">
-        ${
-          this.options.showQualitySelector && this.sources.length > 1
-            ? `<div class="vp-settings-container">
-                <button class="vp-btn vp-settings" aria-label="Settings">
-                  <span class="material-symbols-outlined">settings</span>
-                </button>
-                <div class="vp-settings-menu" style="display: none;">
-                  <div class="vp-settings-menu-header">Quality</div>
-                  <button class="vp-settings-menu-item" data-quality="auto">Auto <span class="vp-auto-quality-display"></span></button>
-                  ${this.sources
-                    .map(
-                      (s) =>
-                        `<button class="vp-settings-menu-item" data-quality="${s.quality ?? 'auto'}">${s.label ?? s.quality ?? 'Auto'}</button>`
-                    )
-                    .join('')}
-                </div>
-              </div>`
-            : ''
-        }
-        <div class="vp-speed-container">
-          <button class="vp-btn vp-speed" aria-label="Playback Speed">
-            <span class="material-symbols-outlined">speed</span>
-          </button>
-          <div class="vp-speed-menu" style="display: none;">
-            <div class="vp-speed-menu-header">Speed</div>
-            <button class="vp-speed-menu-item" data-rate="0.25">0.25x</button>
-            <button class="vp-speed-menu-item" data-rate="0.5">0.5x</button>
-            <button class="vp-speed-menu-item" data-rate="0.75">0.75x</button>
-            <button class="vp-speed-menu-item" data-rate="1">Normal</button>
-            <button class="vp-speed-menu-item" data-rate="1.25">1.25x</button>
-            <button class="vp-speed-menu-item" data-rate="1.5">1.5x</button>
-            <button class="vp-speed-menu-item" data-rate="1.75">1.75x</button>
-            <button class="vp-speed-menu-item" data-rate="2">2x</button>
-          </div>
-        </div>
-        ${
-          this.subtitles.length > 0
-            ? `<div class="vp-subtitle-container">
-                <button class="vp-btn vp-subtitle" aria-label="Subtitles">
-                  <span class="material-symbols-outlined">closed_caption</span>
-                </button>
-                <div class="vp-subtitle-menu" style="display: none;">
-                  <div class="vp-subtitle-menu-header">Subtitles</div>
-                  <button class="vp-subtitle-menu-item" data-lang="off">Off</button>
-                  ${this.subtitles
-                    .map(
-                      (s) =>
-                        `<button class="vp-subtitle-menu-item" data-lang="${s.srclang}">${s.label}</button>`
-                    )
-                    .join('')}
-                </div>
-              </div>`
-            : ''
-        }
-        ${
-          this.options.enablePIP
-            ? '<button class="vp-btn vp-pip" aria-label="Picture in Picture"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>'
-            : ''
-        }
-        ${
-          this.options.enableFullscreen
-            ? '<button class="vp-btn vp-fullscreen" aria-label="Fullscreen"><span class="material-symbols-outlined">fullscreen</span></button>'
-            : ''
-        }
-        </div>
-      </div>
-    `;
+  private initializeControls(): void {
+    this.controlsManager = new ControlsManager(
+      this.container,
+      this.videoElement,
+      this.options,
+      this.sources,
+      this.subtitles
+    );
 
-    this.container.appendChild(this.controlsContainer);
+    const controlsElement = this.controlsManager.createControls();
+    this.container.appendChild(controlsElement);
+
+    const animationIcon = this.controlsManager.createAnimationIcon();
+    this.container.appendChild(animationIcon);
+
+    const controlsContainer = this.controlsManager.getControlsContainer()!;
+
+    // Initialize UI Manager
+    this.uiManager = new UIManager(controlsContainer, this.videoElement);
+
+    // Initialize Menu Manager
+    this.menuManager = new MenuManager(
+      controlsContainer,
+      this.videoElement,
+      this.sources,
+      this.qualityManager.getCurrentQuality(),
+      this.currentSubtitle,
+      this.qualityManager.isAuto()
+    );
+
+    // Initialize Thumbnail Manager
+    this.thumbnailManager = new ThumbnailManager(
+      this.videoElement,
+      controlsContainer,
+      this.options.enableThumbnails,
+      this.options.thumbnailInterval
+    );
+    this.thumbnailManager.initialize();
+
+    // Attach control event listeners
     this.attachControlsListeners();
-    this.updateQualityMenuUI();
-    this.updateSpeedMenuUI();
-    this.updateSubtitleMenuUI();
+
+    // Setup auto-hide
+    this.controlsManager.setupAutoHide(
+      () => this.showControls(),
+      () => this.hideControls()
+    );
+
+    // Update initial menu states
+    this.menuManager.updateQualityMenu();
+    this.menuManager.updateSpeedMenu();
+    this.menuManager.updateSubtitleMenu();
   }
 
   /**
    * Attach event listeners to controls
    */
   private attachControlsListeners(): void {
-    if (!this.controlsContainer) return;
+    const controlsContainer = this.controlsManager?.getControlsContainer();
+    if (!controlsContainer) return;
 
     // Play/Pause
-    const playPauseBtn = this.controlsContainer.querySelector('.vp-play-pause');
-    playPauseBtn?.addEventListener('click', () => this.togglePlay());
+    controlsContainer.querySelector('.vp-play-pause')?.addEventListener('click', () => this.togglePlay());
 
     // Progress
-    const progressBar = this.controlsContainer.querySelector('.vp-progress') as HTMLInputElement;
+    const progressBar = controlsContainer.querySelector('.vp-progress') as HTMLInputElement;
     progressBar?.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      const time = (parseFloat(target.value) / 100) * this.videoElement.duration;
+      const time = (parseFloat((e.target as HTMLInputElement).value) / 100) * this.videoElement.duration;
       this.seek(time);
     });
 
-    // Progress hover preview
-    const progressContainer = this.controlsContainer.querySelector(
-      '.vp-progress-container'
-    ) as HTMLElement;
-    progressContainer?.addEventListener('mousemove', (e) => this.handleProgressHover(e));
-    progressContainer?.addEventListener('mouseleave', () => this.hideProgressPreview());
+    // Progress hover
+    const progressContainer = controlsContainer.querySelector('.vp-progress-container') as HTMLElement;
+    progressContainer?.addEventListener('mousemove', (e) => this.thumbnailManager?.handleProgressHover(e));
+    progressContainer?.addEventListener('mouseleave', () => this.thumbnailManager?.hideProgressPreview());
 
     // Volume
-    const volumeBtn = this.controlsContainer.querySelector('.vp-volume');
-    volumeBtn?.addEventListener('click', () => this.toggleMute());
-
-    const volumeSlider = this.controlsContainer.querySelector(
-      '.vp-volume-slider'
-    ) as HTMLInputElement;
+    controlsContainer.querySelector('.vp-volume')?.addEventListener('click', () => this.toggleMute());
+    
+    const volumeSlider = controlsContainer.querySelector('.vp-volume-slider') as HTMLInputElement;
     volumeSlider?.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      this.setVolume(parseFloat(target.value));
+      this.setVolume(parseFloat((e.target as HTMLInputElement).value));
     });
 
     // Settings menu
-    const settingsBtn = this.controlsContainer.querySelector('.vp-settings');
-    settingsBtn?.addEventListener('click', (e) => {
+    controlsContainer.querySelector('.vp-settings')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.toggleSettingsMenu();
+      this.menuManager?.toggleSettingsMenu();
     });
 
-    // Quality selection from menu
-    const qualityItems = this.controlsContainer.querySelectorAll('.vp-settings-menu-item');
-    qualityItems.forEach((item) => {
+    // Quality selection
+    controlsContainer.querySelectorAll('.vp-settings-menu-item').forEach((item) => {
       item.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        const quality = target.getAttribute('data-quality');
+        const quality = (e.target as HTMLElement).getAttribute('data-quality');
         if (quality) {
-          this.setQuality(quality);
-          this.toggleSettingsMenu();
+          this.qualityManager.setQuality(quality);
+          this.menuManager?.toggleSettingsMenu();
         }
       });
     });
 
-    // Close settings menu when clicking outside
-    document.addEventListener('click', (e) => {
-      const settingsMenu = this.controlsContainer?.querySelector(
-        '.vp-settings-menu'
-      ) as HTMLElement;
-      if (settingsMenu && settingsMenu.style.display !== 'none') {
-        const target = e.target as HTMLElement;
-        if (!target.closest('.vp-settings-container')) {
-          this.toggleSettingsMenu();
-        }
-      }
-    });
-
-    // Playback rate menu
-    const speedBtn = this.controlsContainer.querySelector('.vp-speed');
-    speedBtn?.addEventListener('click', (e) => {
+    // Speed menu
+    controlsContainer.querySelector('.vp-speed')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.toggleSpeedMenu();
+      this.menuManager?.toggleSpeedMenu();
     });
 
-    // Speed selection from menu
-    const speedItems = this.controlsContainer.querySelectorAll('.vp-speed-menu-item');
-    speedItems.forEach((item) => {
+    // Speed selection
+    controlsContainer.querySelectorAll('.vp-speed-menu-item').forEach((item) => {
       item.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        const rate = target.getAttribute('data-rate');
+        const rate = (e.target as HTMLElement).getAttribute('data-rate');
         if (rate) {
           this.setPlaybackRate(parseFloat(rate));
-          this.toggleSpeedMenu();
+          this.menuManager?.toggleSpeedMenu();
         }
       });
-    });
-
-    // Close speed menu when clicking outside
-    document.addEventListener('click', (e) => {
-      const speedMenu = this.controlsContainer?.querySelector('.vp-speed-menu') as HTMLElement;
-      if (speedMenu && speedMenu.style.display !== 'none') {
-        const target = e.target as HTMLElement;
-        if (!target.closest('.vp-speed-container')) {
-          this.toggleSpeedMenu();
-        }
-      }
     });
 
     // Subtitle menu
-    const subtitleBtn = this.controlsContainer.querySelector('.vp-subtitle');
-    subtitleBtn?.addEventListener('click', (e) => {
+    controlsContainer.querySelector('.vp-subtitle')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.toggleSubtitleMenu();
+      this.menuManager?.toggleSubtitleMenu();
     });
 
-    // Subtitle selection from menu
-    const subtitleItems = this.controlsContainer.querySelectorAll('.vp-subtitle-menu-item');
-    subtitleItems.forEach((item) => {
+    // Subtitle selection
+    controlsContainer.querySelectorAll('.vp-subtitle-menu-item').forEach((item) => {
       item.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        const lang = target.getAttribute('data-lang');
+        const lang = (e.target as HTMLElement).getAttribute('data-lang');
         if (lang) {
-          if (lang === 'off') {
-            this.disableSubtitles();
-          } else {
-            this.setSubtitle(lang);
-          }
-          this.toggleSubtitleMenu();
+          lang === 'off' ? this.disableSubtitles() : this.setSubtitle(lang);
+          this.menuManager?.toggleSubtitleMenu();
         }
       });
     });
 
-    // Close subtitle menu when clicking outside
-    document.addEventListener('click', (e) => {
-      const subtitleMenu = this.controlsContainer?.querySelector(
-        '.vp-subtitle-menu'
-      ) as HTMLElement;
-      if (subtitleMenu && subtitleMenu.style.display !== 'none') {
-        const target = e.target as HTMLElement;
-        if (!target.closest('.vp-subtitle-container')) {
-          this.toggleSubtitleMenu();
-        }
-      }
-    });
-
     // PIP
-    const pipBtn = this.controlsContainer.querySelector('.vp-pip');
-    pipBtn?.addEventListener('click', () => void this.togglePIP());
+    controlsContainer.querySelector('.vp-pip')?.addEventListener('click', () => void this.togglePIP());
 
     // Fullscreen
-    const fullscreenBtn = this.controlsContainer.querySelector('.vp-fullscreen');
-    fullscreenBtn?.addEventListener('click', () => void this.toggleFullscreen());
+    controlsContainer.querySelector('.vp-fullscreen')?.addEventListener('click', () => void this.toggleFullscreen());
+
+    // Close menus when clicking outside
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.vp-settings-container') && 
+          !target.closest('.vp-speed-container') && 
+          !target.closest('.vp-subtitle-container')) {
+        this.menuManager?.closeAll();
+      }
+    });
   }
 
   /**
    * Attach video element event listeners
    */
-  private attachEventListeners(): void {
+  private attachVideoEventListeners(): void {
     this.videoElement.addEventListener('play', () => this.emitEvent('play'));
     this.videoElement.addEventListener('pause', () => this.emitEvent('pause'));
     this.videoElement.addEventListener('ended', () => this.emitEvent('ended'));
     this.videoElement.addEventListener('timeupdate', () => {
-      this.updateProgress();
+      this.uiManager?.updateProgress();
       this.emitEvent('timeupdate');
     });
     this.videoElement.addEventListener('volumechange', () => {
-      this.updateVolumeUI();
+      this.uiManager?.updateVolume();
       this.emitEvent('volumechange');
     });
     this.videoElement.addEventListener('ratechange', () => {
-      this.updateRateUI();
+      this.menuManager?.updateSpeedMenu();
       this.emitEvent('ratechange');
     });
     this.videoElement.addEventListener('seeking', () => this.emitEvent('seeking'));
@@ -414,46 +340,38 @@ export class VideoPlayer {
     this.videoElement.addEventListener('waiting', () => this.emitEvent('waiting'));
     this.videoElement.addEventListener('canplay', () => this.emitEvent('canplay'));
     this.videoElement.addEventListener('error', () => this.handleError());
-    this.videoElement.addEventListener('progress', () => this.updateBuffer());
+    this.videoElement.addEventListener('progress', () => this.uiManager?.updateBuffer());
     this.videoElement.addEventListener('loadedmetadata', () => {
-      this.updateDuration();
-      if (this.options.enableThumbnails) {
-        this.generateThumbnails();
-      }
+      this.uiManager?.updateDuration();
     });
 
-    // Text track cue change - adjust subtitle position when new cues load
+    // Text tracks
     this.videoElement.textTracks.addEventListener('change', () => {
       const controlsVisible = this.container.classList.contains('vp-controls-visible');
       this.adjustSubtitlePosition(controlsVisible);
     });
 
-    // Fullscreen change
+    // Fullscreen and PIP
     document.addEventListener('fullscreenchange', () => this.emitEvent('fullscreenchange'));
-
-    // PIP change
     this.videoElement.addEventListener('enterpictureinpicture', () => this.emitEvent('pipchange'));
     this.videoElement.addEventListener('leavepictureinpicture', () => this.emitEvent('pipchange'));
 
-    // Click on video to play/pause (with double-click detection)
+    // Click handlers
     this.videoElement.addEventListener('click', () => {
       if (this.clickTimeout !== null) {
-        // This is part of a double-click, ignore
         clearTimeout(this.clickTimeout);
         this.clickTimeout = null;
         return;
       }
 
-      // Wait to see if this is a double-click
       this.clickTimeout = window.setTimeout(() => {
         this.clickTimeout = null;
         const willPlay = this.videoElement.paused;
-        this.showPlayPauseAnimation(willPlay);
+        this.uiManager?.showPlayPauseAnimation(this.container, willPlay);
         this.togglePlay();
       }, 250);
     });
 
-    // Double-click on video to toggle fullscreen
     this.videoElement.addEventListener('dblclick', () => {
       if (this.clickTimeout !== null) {
         clearTimeout(this.clickTimeout);
@@ -475,7 +393,7 @@ export class VideoPlayer {
         case ' ':
         case 'k':
           e.preventDefault();
-          this.showPlayPauseAnimation(this.videoElement.paused);
+          this.uiManager?.showPlayPauseAnimation(this.container, this.videoElement.paused);
           this.togglePlay();
           break;
         case 'ArrowLeft':
@@ -511,40 +429,6 @@ export class VideoPlayer {
   }
 
   /**
-   * Setup auto-hide controls after inactivity
-   */
-  private setupControlsAutoHide(): void {
-    if (!this.options.controls) return;
-
-    // Show controls initially
-    this.showControls();
-
-    // Show controls and reset timer on mouse move or touch
-    const resetHideTimer = () => {
-      this.showControls();
-      this.startHideControlsTimer();
-    };
-
-    this.container.addEventListener('mousemove', resetHideTimer);
-    this.container.addEventListener('touchstart', resetHideTimer);
-    this.container.addEventListener('click', resetHideTimer);
-
-    // Don't hide controls when hovering over them
-    this.controlsContainer?.addEventListener('mouseenter', () => {
-      this.clearHideControlsTimer();
-    });
-
-    this.controlsContainer?.addEventListener('mouseleave', () => {
-      this.startHideControlsTimer();
-    });
-
-    // Also hide controls when mouse leaves the video area
-    this.videoElement.addEventListener('mouseleave', () => {
-      this.hideControls();
-    });
-  }
-
-  /**
    * Show controls
    */
   private showControls(): void {
@@ -574,9 +458,6 @@ export class VideoPlayer {
         for (let j = 0; j < track.cues.length; j++) {
           const cue = track.cues[j] as VTTCue;
           if (cue) {
-            // Move subtitles up when controls are visible
-            // -3 means 3 lines from bottom (above controls)
-            // -1 is default (1 line from bottom)
             cue.line = controlsVisible ? -5 : -1;
           }
         }
@@ -585,27 +466,7 @@ export class VideoPlayer {
   }
 
   /**
-   * Start timer to hide controls
-   */
-  private startHideControlsTimer(): void {
-    this.clearHideControlsTimer();
-    this.hideControlsTimeout = window.setTimeout(() => {
-      this.hideControls();
-    }, 2000);
-  }
-
-  /**
-   * Clear hide controls timer
-   */
-  private clearHideControlsTimer(): void {
-    if (this.hideControlsTimeout !== null) {
-      clearTimeout(this.hideControlsTimeout);
-      this.hideControlsTimeout = null;
-    }
-  }
-
-  /**
-   * Apply theme
+   * Apply theme and custom styles
    */
   private applyTheme(): void {
     this.container.classList.add('vp-container');
@@ -636,7 +497,6 @@ export class VideoPlayer {
       '--vp-active-menu-item-color': styles.activeMenuItemColor,
     };
 
-    // Apply custom CSS variables to the container
     Object.entries(styleMap).forEach(([property, value]) => {
       if (value) {
         this.container.style.setProperty(property, value);
@@ -645,510 +505,16 @@ export class VideoPlayer {
   }
 
   /**
-   * Create animation icon for play/pause feedback
+   * Handle quality change event
    */
-  private createAnimationIcon(): void {
-    const animationIcon = document.createElement('div');
-    animationIcon.className = 'vp-animation-icon';
-    animationIcon.innerHTML =
-      '<div class="vp-animation-icon-content"><span class="material-symbols-outlined"></span></div>';
-    this.container.appendChild(animationIcon);
-  }
-
-  /**
-   * Show play/pause animation
-   */
-  private showPlayPauseAnimation(isPlaying: boolean): void {
-    const animationIcon = this.container.querySelector('.vp-animation-icon') as HTMLElement;
-    const iconContent = this.container.querySelector(
-      '.vp-animation-icon-content .material-symbols-outlined'
-    ) as HTMLElement;
-
-    if (!animationIcon || !iconContent) return;
-
-    // Set icon based on new state
-    iconContent.textContent = isPlaying ? 'play_arrow' : 'pause';
-
-    // Remove any existing animation
-    animationIcon.classList.remove('vp-animation-show');
-
-    // Trigger reflow to restart animation
-    void animationIcon.offsetWidth;
-
-    // Add animation class
-    animationIcon.classList.add('vp-animation-show');
-
-    // Remove class after animation completes
-    setTimeout(() => {
-      animationIcon.classList.remove('vp-animation-show');
-    }, 500);
-  }
-
-  /**
-   * Update progress bar
-   */
-  private updateProgress(): void {
-    if (!this.controlsContainer) return;
-
-    const progressBar = this.controlsContainer.querySelector('.vp-progress') as HTMLInputElement;
-    const currentTimeSpan = this.controlsContainer.querySelector('.vp-current-time');
-
-    if (progressBar && !isNaN(this.videoElement.duration)) {
-      const progress = (this.videoElement.currentTime / this.videoElement.duration) * 100;
-      progressBar.value = progress.toString();
-      progressBar.style.setProperty('--progress', `${progress}%`);
-    }
-
-    if (currentTimeSpan) {
-      currentTimeSpan.textContent = this.formatTime(this.videoElement.currentTime);
-    }
-  }
-
-  /**
-   * Update buffer bar
-   */
-  private updateBuffer(): void {
-    if (!this.controlsContainer) return;
-
-    const bufferBar = this.controlsContainer.querySelector('.vp-buffer') as HTMLElement;
-    if (!bufferBar || !this.videoElement.buffered.length) return;
-
-    const bufferedEnd = this.videoElement.buffered.end(this.videoElement.buffered.length - 1);
-    const duration = this.videoElement.duration;
-
-    if (duration > 0) {
-      const bufferedPercent = (bufferedEnd / duration) * 100;
-      bufferBar.style.width = `${bufferedPercent}%`;
-    }
-  }
-
-  /**
-   * Update duration display
-   */
-  private updateDuration(): void {
-    if (!this.controlsContainer) return;
-
-    const durationSpan = this.controlsContainer.querySelector('.vp-duration');
-    if (durationSpan) {
-      durationSpan.textContent = this.formatTime(this.videoElement.duration);
-    }
-  }
-
-  /**
-   * Update volume UI
-   */
-  private updateVolumeUI(): void {
-    if (!this.controlsContainer) return;
-
-    const volumeSlider = this.controlsContainer.querySelector(
-      '.vp-volume-slider'
-    ) as HTMLInputElement;
-    const volumeHighIcon = this.controlsContainer.querySelector(
-      '.vp-icon-volume-high'
-    ) as HTMLElement;
-    const volumeLowIcon = this.controlsContainer.querySelector(
-      '.vp-icon-volume-low'
-    ) as HTMLElement;
-    const volumeMutedIcon = this.controlsContainer.querySelector(
-      '.vp-icon-volume-muted'
-    ) as HTMLElement;
-
-    if (volumeSlider) {
-      volumeSlider.value = this.videoElement.volume.toString();
-      const volumePercent = this.videoElement.volume * 100;
-      volumeSlider.style.setProperty('--volume', `${volumePercent}%`);
-    }
-
-    // Update volume icon based on volume level
-    if (this.videoElement.muted || this.videoElement.volume === 0) {
-      volumeHighIcon.style.display = 'none';
-      volumeLowIcon.style.display = 'none';
-      volumeMutedIcon.style.display = 'inline';
-    } else if (this.videoElement.volume <= 0.5) {
-      volumeHighIcon.style.display = 'none';
-      volumeLowIcon.style.display = 'inline';
-      volumeMutedIcon.style.display = 'none';
-    } else {
-      volumeHighIcon.style.display = 'inline';
-      volumeLowIcon.style.display = 'none';
-      volumeMutedIcon.style.display = 'none';
-    }
-  }
-
-  /**
-   * Update playback rate UI
-   */
-  private updateRateUI(): void {
-    if (!this.controlsContainer) return;
-
-    this.updateSpeedMenuUI();
-  }
-
-  /**
-   * Close all popup menus
-   */
-  private closeAllPopups(): void {
-    if (!this.controlsContainer) return;
-
-    const speedMenu = this.controlsContainer.querySelector('.vp-speed-menu') as HTMLElement;
-    const subtitleMenu = this.controlsContainer.querySelector('.vp-subtitle-menu') as HTMLElement;
-    const settingsMenu = this.controlsContainer.querySelector('.vp-settings-menu') as HTMLElement;
-
-    if (speedMenu) speedMenu.style.display = 'none';
-    if (subtitleMenu) subtitleMenu.style.display = 'none';
-    if (settingsMenu) settingsMenu.style.display = 'none';
-  }
-
-  /**
-   * Toggle speed menu
-   */
-  private toggleSpeedMenu(): void {
-    if (!this.controlsContainer) return;
-
-    const speedMenu = this.controlsContainer.querySelector('.vp-speed-menu') as HTMLElement;
-    if (!speedMenu) return;
-
-    const isVisible = speedMenu.style.display !== 'none';
-
-    // Close all other popups first
-    if (!isVisible) {
-      this.closeAllPopups();
-    }
-
-    speedMenu.style.display = isVisible ? 'none' : 'block';
-
-    // Update active speed item when opening
-    if (!isVisible) {
-      this.updateSpeedMenuUI();
-    }
-  }
-
-  /**
-   * Update speed menu UI to show active speed
-   */
-  private updateSpeedMenuUI(): void {
-    if (!this.controlsContainer) return;
-
-    const items = this.controlsContainer.querySelectorAll('.vp-speed-menu-item');
-    items.forEach((item) => {
-      const rate = parseFloat(item.getAttribute('data-rate') ?? '1');
-      if (rate === this.videoElement.playbackRate) {
-        item.classList.add('vp-active');
-      } else {
-        item.classList.remove('vp-active');
-      }
-    });
-  }
-
-  /**
-   * Toggle subtitle menu
-   */
-  private toggleSubtitleMenu(): void {
-    if (!this.controlsContainer) return;
-
-    const subtitleMenu = this.controlsContainer.querySelector('.vp-subtitle-menu') as HTMLElement;
-    if (!subtitleMenu) return;
-
-    const isVisible = subtitleMenu.style.display !== 'none';
-
-    // Close all other popups first
-    if (!isVisible) {
-      this.closeAllPopups();
-    }
-
-    subtitleMenu.style.display = isVisible ? 'none' : 'block';
-
-    // Update active subtitle item when opening
-    if (!isVisible) {
-      this.updateSubtitleMenuUI();
-    }
-  }
-
-  /**
-   * Update subtitle menu UI to show active subtitle
-   */
-  private updateSubtitleMenuUI(): void {
-    if (!this.controlsContainer) return;
-
-    const items = this.controlsContainer.querySelectorAll('.vp-subtitle-menu-item');
-    items.forEach((item) => {
-      const lang = item.getAttribute('data-lang');
-      if (lang === this.currentSubtitle || (lang === 'off' && !this.currentSubtitle)) {
-        item.classList.add('vp-active');
-      } else {
-        item.classList.remove('vp-active');
-      }
-    });
-  }
-
-  /**
-   * Handle progress bar hover to show preview
-   */
-  private handleProgressHover(e: MouseEvent): void {
-    if (!this.controlsContainer || isNaN(this.videoElement.duration)) return;
-
-    const progressContainer = e.currentTarget as HTMLElement;
-    const preview = this.controlsContainer.querySelector('.vp-progress-preview') as HTMLElement;
-    const previewTime = this.controlsContainer.querySelector(
-      '.vp-progress-preview-time'
-    ) as HTMLElement;
-    if (!preview || !previewTime) return;
-
-    // Calculate position
-    const rect = progressContainer.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    const time = pos * this.videoElement.duration;
-
-    // Update preview time
-    previewTime.textContent = this.formatTime(time);
-
-    // Update thumbnail if available
-    if (this.options.enableThumbnails) {
-      void this.updateThumbnailPreview(time);
-    }
-
-    // Position preview
-    const previewWidth = preview.offsetWidth;
-    let leftPos = e.clientX - rect.left - previewWidth / 2;
-
-    // Keep preview within bounds
-    leftPos = Math.max(0, Math.min(leftPos, rect.width - previewWidth));
-
-    preview.style.left = `${leftPos}px`;
-    preview.style.display = 'block';
-  }
-
-  /**
-   * Hide progress preview
-   */
-  private hideProgressPreview(): void {
-    if (!this.controlsContainer) return;
-
-    const preview = this.controlsContainer.querySelector('.vp-progress-preview') as HTMLElement;
-    if (preview) {
-      preview.style.display = 'none';
-    }
-  }
-
-  /**
-   * Generate thumbnails from video
-   */
-  private async generateThumbnails(): Promise<void> {
-    // Initialize canvas for capturing frames
-    if (!this.thumbnailCanvas) {
-      this.thumbnailCanvas = document.createElement('canvas');
-      this.thumbnailCanvas.width = 160;
-      this.thumbnailCanvas.height = 90;
-    }
-  }
-
-  /**
-   * Capture thumbnail on-demand at specific time
-   */
-  private async captureThumbnailOnDemand(time: number): Promise<string | null> {
-    if (!this.thumbnailCanvas) {
-      this.thumbnailCanvas = document.createElement('canvas');
-      this.thumbnailCanvas.width = 160;
-      this.thumbnailCanvas.height = 90;
-    }
-
-    const ctx = this.thumbnailCanvas.getContext('2d');
-    if (!ctx) return null;
-
-    return new Promise((resolve) => {
-      // Create a temporary video element for thumbnail capture
-      const tempVideo = document.createElement('video');
-      tempVideo.src = this.videoElement.src;
-      tempVideo.crossOrigin = 'anonymous';
-      tempVideo.muted = true;
-      tempVideo.preload = 'metadata';
-
-      let resolved = false;
-
-      const cleanup = () => {
-        tempVideo.removeEventListener('seeked', captureFrame);
-        tempVideo.removeEventListener('loadedmetadata', onMetadataLoaded);
-        tempVideo.removeEventListener('error', onError);
-        tempVideo.src = '';
-      };
-
-      const captureFrame = () => {
-        if (resolved) return;
-        resolved = true;
-
-        try {
-          // Draw current frame to canvas
-          ctx.drawImage(tempVideo, 0, 0, this.thumbnailCanvas!.width, this.thumbnailCanvas!.height);
-
-          // Store as data URL
-          const dataUrl = this.thumbnailCanvas!.toDataURL('image/jpeg', 0.7);
-
-          cleanup();
-          resolve(dataUrl);
-        } catch (error) {
-          console.error('Error capturing thumbnail:', error);
-          cleanup();
-          resolve(null);
-        }
-      };
-
-      const onMetadataLoaded = () => {
-        tempVideo.currentTime = time;
-      };
-
-      const onError = () => {
-        if (resolved) return;
-        resolved = true;
-        console.error('Error loading video for thumbnail');
-        cleanup();
-        resolve(null);
-      };
-
-      // Set timeout to avoid hanging
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          resolve(null);
-        }
-      }, 3000);
-
-      tempVideo.addEventListener('seeked', captureFrame);
-      tempVideo.addEventListener('loadedmetadata', onMetadataLoaded);
-      tempVideo.addEventListener('error', onError);
-      tempVideo.load();
-    });
-  }
-
-  /**
-   * Update thumbnail in progress preview
-   */
-  private async updateThumbnailPreview(time: number): Promise<void> {
-    if (!this.options.enableThumbnails || !this.controlsContainer) return;
-
-    const thumbnail = this.controlsContainer.querySelector(
-      '.vp-progress-preview-thumbnail'
-    ) as HTMLElement;
-    if (!thumbnail) return;
-
-    // Find nearest thumbnail time based on interval
-    const interval = this.options.thumbnailInterval;
-    const nearestTime = Math.floor(time / interval) * interval;
-
-    // Check if we already have this thumbnail cached
-    let thumbnailUrl = this.thumbnailCache.get(nearestTime) || null;
-
-    if (!thumbnailUrl) {
-      // Capture on-demand if not cached
-      thumbnailUrl = await this.captureThumbnailOnDemand(nearestTime);
-      if (thumbnailUrl) {
-        this.thumbnailCache.set(nearestTime, thumbnailUrl);
-      }
-    }
-
-    if (thumbnailUrl) {
-      thumbnail.style.width = '160px';
-      thumbnail.style.height = '90px';
-      thumbnail.style.backgroundImage = `url(${thumbnailUrl})`;
-      thumbnail.style.backgroundSize = 'cover';
-      thumbnail.style.backgroundPosition = 'center';
-    }
-  }
-
-  /**
-   * Update play/pause button
-   */
-  private updatePlayPauseUI(): void {
-    if (!this.controlsContainer) return;
-
-    const playIcon = this.controlsContainer.querySelector('.vp-icon-play') as HTMLElement;
-    const pauseIcon = this.controlsContainer.querySelector('.vp-icon-pause') as HTMLElement;
-
-    if (this.videoElement.paused) {
-      playIcon.style.display = 'inline';
-      pauseIcon.style.display = 'none';
-    } else {
-      playIcon.style.display = 'none';
-      pauseIcon.style.display = 'inline';
-    }
-  }
-
-  /**
-   * Toggle settings menu
-   */
-  private toggleSettingsMenu(): void {
-    if (!this.controlsContainer) return;
-
-    const settingsMenu = this.controlsContainer.querySelector('.vp-settings-menu') as HTMLElement;
-    if (!settingsMenu) return;
-
-    const isVisible = settingsMenu.style.display !== 'none';
-
-    // Close all other popups first
-    if (!isVisible) {
-      this.closeAllPopups();
-    }
-
-    settingsMenu.style.display = isVisible ? 'none' : 'block';
-
-    // Update active quality item when opening
-    if (!isVisible) {
-      this.updateQualityMenuUI();
-    }
-  }
-
-  /**
-   * Update quality menu UI to show active quality
-   */
-  private updateQualityMenuUI(): void {
-    if (!this.controlsContainer) return;
-
-    const items = this.controlsContainer.querySelectorAll('.vp-settings-menu-item');
-    const autoQualityDisplay = this.controlsContainer.querySelector('.vp-auto-quality-display');
-
-    items.forEach((item) => {
-      const quality = item.getAttribute('data-quality');
-
-      if (this.isAutoQuality) {
-        // When in auto mode, mark "auto" as active
-        if (quality === 'auto') {
-          item.classList.add('vp-active');
-          // Show actual quality in parentheses
-          if (autoQualityDisplay && this.currentQuality !== 'auto') {
-            autoQualityDisplay.textContent = `(${this.currentQuality})`;
-          }
-        } else {
-          item.classList.remove('vp-active');
-        }
-      } else {
-        // When not in auto mode, mark the selected quality
-        if (quality === this.currentQuality) {
-          item.classList.add('vp-active');
-        } else {
-          item.classList.remove('vp-active');
-        }
-        // Clear auto quality display
-        if (autoQualityDisplay) {
-          autoQualityDisplay.textContent = '';
-        }
-      }
-    });
-  }
-
-  /**
-   * Format time in MM:SS or HH:MM:SS
-   */
-  private formatTime(seconds: number): string {
-    if (isNaN(seconds)) return '0:00';
-
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  private handleQualityChange(): void {
+    this.menuManager?.updateState(
+      this.qualityManager.getCurrentQuality(),
+      this.currentSubtitle,
+      this.qualityManager.isAuto()
+    );
+    this.menuManager?.updateQualityMenu();
+    this.emitEvent('qualitychange');
   }
 
   /**
@@ -1172,11 +538,7 @@ export class VideoPlayer {
    * Emit event to listeners
    */
   private emitEvent(eventType: PlayerEventType): void {
-    const listeners = this.eventListeners.get(eventType);
-    if (!listeners) return;
-
-    const state = this.getState();
-    listeners.forEach((callback) => callback(state));
+    this.eventManager.emit(eventType, this.getState());
   }
 
   // Public API
@@ -1187,9 +549,9 @@ export class VideoPlayer {
   public async play(): Promise<void> {
     try {
       await this.videoElement.play();
-      this.updatePlayPauseUI();
-      this.showPlayPauseAnimation(true);
-      this.startHideControlsTimer();
+      this.uiManager?.updatePlayPause();
+      this.uiManager?.showPlayPauseAnimation(this.container, true);
+      this.controlsManager?.clearHideControlsTimer();
     } catch (error) {
       console.error('Play error:', error);
     }
@@ -1200,9 +562,9 @@ export class VideoPlayer {
    */
   public pause(): void {
     this.videoElement.pause();
-    this.updatePlayPauseUI();
-    this.showPlayPauseAnimation(false);
-    this.clearHideControlsTimer();
+    this.uiManager?.updatePlayPause();
+    this.uiManager?.showPlayPauseAnimation(this.container, false);
+    this.controlsManager?.clearHideControlsTimer();
     this.showControls();
   }
 
@@ -1221,14 +583,14 @@ export class VideoPlayer {
    * Seek to a specific time
    */
   public seek(time: number): void {
-    this.videoElement.currentTime = Math.max(0, Math.min(time, this.videoElement.duration));
+    this.videoElement.currentTime = clamp(time, 0, this.videoElement.duration);
   }
 
   /**
    * Set volume (0-1)
    */
   public setVolume(volume: number): void {
-    this.videoElement.volume = Math.max(0, Math.min(1, volume));
+    this.videoElement.volume = clamp(volume, 0, 1);
     if (volume > 0) {
       this.videoElement.muted = false;
     }
@@ -1262,168 +624,7 @@ export class VideoPlayer {
    * Set video quality
    */
   public setQuality(quality: string): void {
-    // Handle auto quality selection
-    if (quality === 'auto') {
-      this.enableAutoQuality();
-      return;
-    }
-
-    // Disable auto quality if switching to manual
-    this.disableAutoQuality();
-
-    const source = this.sources.find((s) => s.quality === quality);
-    if (!source) return;
-
-    const currentTime = this.videoElement.currentTime;
-    const wasPlaying = !this.videoElement.paused;
-
-    this.videoElement.src = source.src;
-    this.videoElement.currentTime = currentTime;
-    this.currentQuality = quality;
-
-    if (wasPlaying) {
-      void this.play();
-    }
-
-    this.updateQualityMenuUI();
-    this.emitEvent('qualitychange');
-  }
-
-  /**
-   * Enable auto quality selection based on network speed
-   */
-  private enableAutoQuality(): void {
-    this.isAutoQuality = true;
-    this.currentQuality = 'auto';
-    this.updateQualityMenuUI();
-
-    // Start monitoring network and adjust quality
-    this.startQualityMonitoring();
-  }
-
-  /**
-   * Disable auto quality selection
-   */
-  private disableAutoQuality(): void {
-    this.isAutoQuality = false;
-    this.stopQualityMonitoring();
-  }
-
-  /**
-   * Start monitoring network conditions
-   */
-  private startQualityMonitoring(): void {
-    // Initial quality selection
-    void this.detectAndSetQuality();
-
-    // Monitor every 10 seconds
-    this.qualityMonitorInterval = window.setInterval(() => {
-      void this.detectAndSetQuality();
-    }, 10000);
-  }
-
-  /**
-   * Stop monitoring network conditions
-   */
-  private stopQualityMonitoring(): void {
-    if (this.qualityMonitorInterval !== null) {
-      clearInterval(this.qualityMonitorInterval);
-      this.qualityMonitorInterval = null;
-    }
-  }
-
-  /**
-   * Detect network speed and set appropriate quality
-   */
-  private async detectAndSetQuality(): Promise<void> {
-    if (!this.isAutoQuality) return;
-
-    // Measure network speed
-    const speed = await this.measureNetworkSpeed();
-    this.networkSpeed = speed;
-
-    // Select quality based on speed (Mbps)
-    let selectedQuality: string | null = null;
-
-    if (speed >= 5) {
-      // Good connection: prefer highest quality
-      selectedQuality = this.getQualityByPriority(['1080p', '720p', '480p', '360p']);
-    } else if (speed >= 2.5) {
-      // Medium connection: prefer 720p
-      selectedQuality = this.getQualityByPriority(['720p', '480p', '360p', '1080p']);
-    } else if (speed >= 1) {
-      // Slow connection: prefer 480p
-      selectedQuality = this.getQualityByPriority(['480p', '360p', '720p']);
-    } else {
-      // Very slow connection: lowest quality
-      selectedQuality = this.getQualityByPriority(['360p', '480p']);
-    }
-
-    // Switch quality if different from current
-    if (selectedQuality && selectedQuality !== this.currentQuality) {
-      const source = this.sources.find((s) => s.quality === selectedQuality);
-      if (source) {
-        const currentTime = this.videoElement.currentTime;
-        const wasPlaying = !this.videoElement.paused;
-
-        this.videoElement.src = source.src;
-        this.videoElement.currentTime = currentTime;
-        this.currentQuality = selectedQuality;
-
-        if (wasPlaying) {
-          await this.play();
-        }
-
-        this.emitEvent('qualitychange');
-      }
-    }
-  }
-
-  /**
-   * Get quality by priority list
-   */
-  private getQualityByPriority(priorities: string[]): string | null {
-    for (const quality of priorities) {
-      if (this.sources.some((s) => s.quality === quality)) {
-        return quality;
-      }
-    }
-    return this.sources[0]?.quality ?? null;
-  }
-
-  /**
-   * Measure network speed in Mbps
-   */
-  private async measureNetworkSpeed(): Promise<number> {
-    // Use Network Information API if available
-    if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
-      if (connection && connection.downlink) {
-        return connection.downlink; // Returns Mbps
-      }
-    }
-
-    // Fallback: measure download speed with a small request
-    try {
-      const startTime = Date.now();
-      await fetch(this.videoElement.src, {
-        method: 'HEAD',
-        cache: 'no-cache',
-      });
-      const endTime = Date.now();
-      const duration = (endTime - startTime) / 1000; // seconds
-
-      // Estimate based on response time (rough estimate)
-      // Faster response = better connection
-      if (duration < 0.1) return 10; // Very fast
-      if (duration < 0.3) return 5; // Fast
-      if (duration < 0.6) return 2.5; // Medium
-      if (duration < 1) return 1; // Slow
-      return 0.5; // Very slow
-    } catch (error) {
-      console.warn('Could not measure network speed:', error);
-      return 2.5; // Default to medium
-    }
+    this.qualityManager.setQuality(quality);
   }
 
   /**
@@ -1432,25 +633,24 @@ export class VideoPlayer {
   public setSubtitle(lang: string): void {
     const tracks = this.videoElement.textTracks;
 
-    // Disable all tracks first
     for (let i = 0; i < tracks.length; i++) {
       tracks[i]!.mode = 'hidden';
     }
 
-    // Enable the selected track
     for (let i = 0; i < tracks.length; i++) {
       const track = tracks[i]!;
       if (track.language === lang) {
         track.mode = 'showing';
         this.currentSubtitle = lang;
-
-        // Adjust position immediately if controls are visible
-        const controlsVisible = this.container.classList.contains('vp-controls-visible');
-        this.adjustSubtitlePosition(controlsVisible);
-
-        this.updateSubtitleMenuUI();
+        this.menuManager?.updateState(
+          this.qualityManager.getCurrentQuality(),
+          this.currentSubtitle,
+          this.qualityManager.isAuto()
+        );
+        this.menuManager?.updateSubtitleMenu();
         this.emitEvent('subtitlechange');
-        return;
+        this.adjustSubtitlePosition(this.container.classList.contains('vp-controls-visible'));
+        break;
       }
     }
   }
@@ -1466,7 +666,12 @@ export class VideoPlayer {
     }
 
     this.currentSubtitle = null;
-    this.updateSubtitleMenuUI();
+    this.menuManager?.updateState(
+      this.qualityManager.getCurrentQuality(),
+      this.currentSubtitle,
+      this.qualityManager.isAuto()
+    );
+    this.menuManager?.updateSubtitleMenu();
     this.emitEvent('subtitlechange');
   }
 
@@ -1519,7 +724,7 @@ export class VideoPlayer {
       ended: this.videoElement.ended,
       fullscreen: !!document.fullscreenElement,
       pip: !!document.pictureInPictureElement,
-      quality: this.currentQuality ?? undefined,
+      quality: this.qualityManager.getCurrentQuality() ?? undefined,
     };
   }
 
@@ -1527,33 +732,26 @@ export class VideoPlayer {
    * Add event listener
    */
   public on(eventType: PlayerEventType, callback: EventCallback): void {
-    if (!this.eventListeners.has(eventType)) {
-      this.eventListeners.set(eventType, new Set());
-    }
-    this.eventListeners.get(eventType)?.add(callback);
-    if (this.clickTimeout !== null) {
-      clearTimeout(this.clickTimeout);
-    }
+    this.eventManager.on(eventType, callback);
   }
 
   /**
    * Remove event listener
    */
   public off(eventType: PlayerEventType, callback: EventCallback): void {
-    this.eventListeners.get(eventType)?.delete(callback);
+    this.eventManager.off(eventType, callback);
   }
 
   /**
    * Destroy the player
    */
   public destroy(): void {
-    this.clearHideControlsTimer();
-    this.stopQualityMonitoring();
+    this.controlsManager?.clearHideControlsTimer();
+    this.qualityManager.destroy();
+    this.thumbnailManager?.clearCache();
     this.videoElement.pause();
     this.videoElement.src = '';
-    this.eventListeners.clear();
-    this.thumbnailCache.clear();
-    this.thumbnailCanvas = null;
+    this.eventManager.clear();
     this.container.innerHTML = '';
   }
 }

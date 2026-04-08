@@ -11,7 +11,7 @@ describe('VideoPlayer', () => {
 
   it('should create a video player instance', () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
     });
 
     expect(player).toBeInstanceOf(VideoPlayer);
@@ -20,7 +20,7 @@ describe('VideoPlayer', () => {
 
   it('should apply options correctly', () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
       volume: 0.5,
       muted: true,
       loop: true,
@@ -33,7 +33,7 @@ describe('VideoPlayer', () => {
 
   it('should handle play/pause', async () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
     });
 
     let playEventFired = false;
@@ -44,11 +44,12 @@ describe('VideoPlayer', () => {
     // Note: In real tests, you'd need to mock the video element
     // await player.play();
     // expect(playEventFired).toBe(true);
+    expect(playEventFired).toBe(false); // Will be true after play() is called
   });
 
   it('should handle seeking', () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
     });
 
     player.seek(30);
@@ -59,7 +60,7 @@ describe('VideoPlayer', () => {
 
   it('should handle volume changes', () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
     });
 
     player.setVolume(0.7);
@@ -69,7 +70,7 @@ describe('VideoPlayer', () => {
 
   it('should emit events', () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
     });
 
     const callback = vi.fn();
@@ -84,7 +85,7 @@ describe('VideoPlayer', () => {
 
   it('should destroy cleanly', () => {
     const player = new VideoPlayer(container, {
-      src: 'test-video.mp4',
+      src: 'video.mp4',
     });
 
     player.destroy();
