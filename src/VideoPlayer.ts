@@ -112,12 +112,14 @@ export class VideoPlayer {
           <span class="vp-icon-play material-symbols-outlined">play_arrow</span>
           <span class="vp-icon-pause material-symbols-outlined" style="display: none;">pause</span>
         </button>
-        <button class="vp-btn vp-volume" aria-label="Volume">
-          <span class="vp-icon-volume-high material-symbols-outlined">volume_up</span>
-          <span class="vp-icon-volume-low material-symbols-outlined" style="display: none;">volume_down</span>
-          <span class="vp-icon-volume-muted material-symbols-outlined" style="display: none;">volume_off</span>
-        </button>
-        <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
+        <div class="vp-volume-container">
+          <button class="vp-btn vp-volume" aria-label="Volume">
+            <span class="vp-icon-volume-high material-symbols-outlined">volume_up</span>
+            <span class="vp-icon-volume-low material-symbols-outlined" style="display: none;">volume_down</span>
+            <span class="vp-icon-volume-muted material-symbols-outlined" style="display: none;">volume_off</span>
+          </button>
+          <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
+        </div>
         <span class="vp-time">
           <span class="vp-current-time">0:00</span> / <span class="vp-duration">0:00</span>
         </span>
