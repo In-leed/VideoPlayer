@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   opacity: 0;
-  transition: opacity 300ms ease-in-out;
+  transition: opacity 50ms ease-in-out;
   color: white;
   background: linear-gradient(
     to top,
@@ -14,12 +14,12 @@
     transparent 100%
   );
   padding: 40px 16px 12px;
+  pointer-events: none;
 }
 
-.vp-container:hover .vp-controls,
-.vp-container:focus .vp-controls,
-.vp-controls:hover {
+.vp-container.vp-controls-visible .vp-controls {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .vp-controls-bottom {
@@ -221,7 +221,7 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  padding: 0 12px;
+  padding: 0 12px 2px 12px;
   height: 40px;
   display: flex;
   align-items: center;

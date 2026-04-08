@@ -18,6 +18,7 @@ export class VideoPlayer {
   private eventListeners: Map<PlayerEventType, Set<EventCallback>>;
   private sources: VideoSource[];
   private currentQuality: string | null = null;
+  private hideControlsTimeout: number | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
@@ -61,6 +62,7 @@ export class VideoPlayer {
     this.createAnimationIcon();
     this.attachEventListeners();
     this.setupKeyboardShortcuts();
+    this.setupControlsAutoHide();
     this.applyTheme();
   }
 
@@ -370,6 +372,76 @@ export class VideoPlayer {
   }
 
   /**
+   * Setup auto-hide controls after inactivity
+   */
+  private setupControlsAutoHide(): void {
+    if (!this.options.controls) return;
+
+    // Show controls initially
+    this.showControls();
+
+    // Show controls and reset timer on mouse move or touch
+    const resetHideTimer = () => {
+      this.showControls();
+      this.startHideControlsTimer();
+    };
+
+    this.container.addEventListener('mousemove', resetHideTimer);
+    this.container.addEventListener('touchstart', resetHideTimer);
+    this.container.addEventListener('click', resetHideTimer);
+
+    // Don't hide controls when hovering over them
+    this.controlsContainer?.addEventListener('mouseenter', () => {
+      this.clearHideControlsTimer();
+    });
+
+    this.controlsContainer?.addEventListener('mouseleave', () => {
+      this.startHideControlsTimer();
+    });
+
+    // Also hide controls when mouse leaves the video area
+    this.videoElement.addEventListener('mouseleave', () => {
+      this.hideControls();
+    });
+  }
+
+  /**
+   * Show controls
+   */
+  private showControls(): void {
+    this.container.classList.add('vp-controls-visible');
+  }
+
+  /**
+   * Hide controls
+   */
+  private hideControls(): void {
+    if (!this.videoElement.paused) {
+      this.container.classList.remove('vp-controls-visible');
+    }
+  }
+
+  /**
+   * Start timer to hide controls
+   */
+  private startHideControlsTimer(): void {
+    this.clearHideControlsTimer();
+    this.hideControlsTimeout = window.setTimeout(() => {
+      this.hideControls();
+    }, 2000);
+  }
+
+  /**
+   * Clear hide controls timer
+   */
+  private clearHideControlsTimer(): void {
+    if (this.hideControlsTimeout !== null) {
+      clearTimeout(this.hideControlsTimeout);
+      this.hideControlsTimeout = null;
+    }
+  }
+
+  /**
    * Apply theme
    */
   private applyTheme(): void {
@@ -658,6 +730,7 @@ export class VideoPlayer {
       await this.videoElement.play();
       this.updatePlayPauseUI();
       this.showPlayPauseAnimation(true);
+      this.startHideControlsTimer();
     } catch (error) {
       console.error('Play error:', error);
     }
@@ -670,6 +743,8 @@ export class VideoPlayer {
     this.videoElement.pause();
     this.updatePlayPauseUI();
     this.showPlayPauseAnimation(false);
+    this.clearHideControlsTimer();
+    this.showControls();
   }
 
   /**
@@ -820,6 +895,7 @@ export class VideoPlayer {
    * Destroy the player
    */
   public destroy(): void {
+    this.clearHideControlsTimer();
     this.videoElement.pause();
     this.videoElement.src = '';
     this.eventListeners.clear();
