@@ -163,7 +163,7 @@ export class VideoPlayer {
           <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
         </div>
         <span class="vp-time">
-          <span class="vp-current-time">0:00</span> / <span class="vp-duration">0:00</span>
+          <span class="vp-current-time">0:00</span> <span class="vp-time-separator">/</span> <span class="vp-duration">0:00</span>
         </span>
         <div class="vp-spacer"></div>
         <div class="vp-right-controls">
@@ -749,6 +749,21 @@ export class VideoPlayer {
   }
 
   /**
+   * Close all popup menus
+   */
+  private closeAllPopups(): void {
+    if (!this.controlsContainer) return;
+
+    const speedMenu = this.controlsContainer.querySelector('.vp-speed-menu') as HTMLElement;
+    const subtitleMenu = this.controlsContainer.querySelector('.vp-subtitle-menu') as HTMLElement;
+    const settingsMenu = this.controlsContainer.querySelector('.vp-settings-menu') as HTMLElement;
+
+    if (speedMenu) speedMenu.style.display = 'none';
+    if (subtitleMenu) subtitleMenu.style.display = 'none';
+    if (settingsMenu) settingsMenu.style.display = 'none';
+  }
+
+  /**
    * Toggle speed menu
    */
   private toggleSpeedMenu(): void {
@@ -758,6 +773,12 @@ export class VideoPlayer {
     if (!speedMenu) return;
 
     const isVisible = speedMenu.style.display !== 'none';
+    
+    // Close all other popups first
+    if (!isVisible) {
+      this.closeAllPopups();
+    }
+    
     speedMenu.style.display = isVisible ? 'none' : 'block';
 
     // Update active speed item when opening
@@ -793,6 +814,12 @@ export class VideoPlayer {
     if (!subtitleMenu) return;
 
     const isVisible = subtitleMenu.style.display !== 'none';
+    
+    // Close all other popups first
+    if (!isVisible) {
+      this.closeAllPopups();
+    }
+    
     subtitleMenu.style.display = isVisible ? 'none' : 'block';
 
     // Update active subtitle item when opening
@@ -1016,6 +1043,12 @@ export class VideoPlayer {
     if (!settingsMenu) return;
 
     const isVisible = settingsMenu.style.display !== 'none';
+    
+    // Close all other popups first
+    if (!isVisible) {
+      this.closeAllPopups();
+    }
+    
     settingsMenu.style.display = isVisible ? 'none' : 'block';
 
     // Update active quality item when opening
