@@ -6,6 +6,7 @@ import type {
   EventCallback,
   PlayerError,
   SubtitleTrack,
+  ThumbnailConfig,
 } from './types';
 
 /**
@@ -23,6 +24,7 @@ export class VideoPlayer {
   private clickTimeout: number | null = null;
   private subtitles: SubtitleTrack[];
   private currentSubtitle: string | null = null;
+  private thumbnails: ThumbnailConfig | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
@@ -51,11 +53,13 @@ export class VideoPlayer {
       showQualitySelector: options.showQualitySelector ?? false,
       keyboardShortcuts: options.keyboardShortcuts ?? true,
       subtitles: options.subtitles ?? [],
+      thumbnails: options.thumbnails,
     } as Required<VideoPlayerOptions>;
 
     this.eventListeners = new Map();
     this.sources = Array.isArray(this.options.src) ? this.options.src : [{ src: this.options.src }];
     this.subtitles = this.options.subtitles ?? [];
+    this.thumbnails = options.thumbnails ?? null;
 
     // Initialize player
     this.videoElement = this.createVideoElement();
@@ -124,6 +128,10 @@ export class VideoPlayer {
     this.controlsContainer.className = 'vp-controls';
     this.controlsContainer.innerHTML = `
       <div class="vp-progress-container">
+        <div class="vp-progress-preview" style="display: none;">
+          ${this.thumbnails ? '<div class="vp-progress-preview-thumbnail"></div>' : ''}
+          <div class="vp-progress-preview-time">0:00</div>
+        </div>
         <input type="range" class="vp-progress" min="0" max="100" value="0" step="0.1">
         <div class="vp-buffer"></div>
       </div>
@@ -236,6 +244,11 @@ export class VideoPlayer {
       const time = (parseFloat(target.value) / 100) * this.videoElement.duration;
       this.seek(time);
     });
+
+    // Progress hover preview
+    const progressContainer = this.controlsContainer.querySelector('.vp-progress-container') as HTMLElement;
+    progressContainer?.addEventListener('mousemove', (e) => this.handleProgressHover(e));
+    progressContainer?.addEventListener('mouseleave', () => this.hideProgressPreview());
 
     // Volume
     const volumeBtn = this.controlsContainer.querySelector('.vp-volume');
@@ -783,6 +796,81 @@ export class VideoPlayer {
         item.classList.remove('vp-active');
       }
     });
+  }
+
+  /**
+   * Handle progress bar hover to show preview
+   */
+  private handleProgressHover(e: MouseEvent): void {
+    if (!this.controlsContainer || isNaN(this.videoElement.duration)) return;
+
+    const progressContainer = e.currentTarget as HTMLElement;
+    const preview = this.controlsContainer.querySelector('.vp-progress-preview') as HTMLElement;
+    const previewTime = this.controlsContainer.querySelector('.vp-progress-preview-time') as HTMLElement;
+    if (!preview || !previewTime) return;
+
+    // Calculate position
+    const rect = progressContainer.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const time = pos * this.videoElement.duration;
+
+    // Update preview time
+    previewTime.textContent = this.formatTime(time);
+
+    // Update thumbnail if available
+    if (this.thumbnails) {
+      this.updateThumbnailPreview(time);
+    }
+
+    // Position preview
+    const previewWidth = preview.offsetWidth;
+    let leftPos = (e.clientX - rect.left) - (previewWidth / 2);
+    
+    // Keep preview within bounds
+    leftPos = Math.max(0, Math.min(leftPos, rect.width - previewWidth));
+    
+    preview.style.left = `${leftPos}px`;
+    preview.style.display = 'block';
+  }
+
+  /**
+   * Hide progress preview
+   */
+  private hideProgressPreview(): void {
+    if (!this.controlsContainer) return;
+
+    const preview = this.controlsContainer.querySelector('.vp-progress-preview') as HTMLElement;
+    if (preview) {
+      preview.style.display = 'none';
+    }
+  }
+
+  /**
+   * Update thumbnail in progress preview
+   */
+  private updateThumbnailPreview(time: number): void {
+    if (!this.thumbnails || !this.controlsContainer) return;
+
+    const thumbnail = this.controlsContainer.querySelector('.vp-progress-preview-thumbnail') as HTMLElement;
+    if (!thumbnail) return;
+
+    // Calculate which thumbnail to show
+    const index = Math.floor(time / this.thumbnails.interval);
+    const safeIndex = Math.min(index, this.thumbnails.count - 1);
+
+    // Calculate position in sprite sheet
+    const row = Math.floor(safeIndex / this.thumbnails.columns);
+    const col = safeIndex % this.thumbnails.columns;
+    
+    const x = col * this.thumbnails.width;
+    const y = row * this.thumbnails.height;
+
+    // Set background
+    thumbnail.style.width = `${this.thumbnails.width}px`;
+    thumbnail.style.height = `${this.thumbnails.height}px`;
+    thumbnail.style.backgroundImage = `url(${this.thumbnails.src})`;
+    thumbnail.style.backgroundPosition = `-${x}px -${y}px`;
+    thumbnail.style.backgroundSize = `${this.thumbnails.columns * this.thumbnails.width}px ${this.thumbnails.rows * this.thumbnails.height}px`;
   }
 
   /**

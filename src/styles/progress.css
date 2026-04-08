@@ -13,6 +13,39 @@
   height: 5px;
 }
 
+/* Progress Preview Tooltip */
+.vp-progress-preview {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  transform: translateX(0);
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 6px;
+  padding: 8px;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.vp-progress-preview-thumbnail {
+  background-repeat: no-repeat;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.vp-progress-preview-time {
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-family: var(--font-source-regular);
+  font-variant-numeric: tabular-nums;
+}
+
 .vp-progress {
   position: absolute;
   width: 100%;
