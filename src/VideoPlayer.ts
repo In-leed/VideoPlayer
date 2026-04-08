@@ -5,6 +5,7 @@ import type {
   PlayerEventType,
   EventCallback,
   PlayerError,
+  SubtitleTrack,
 } from './types';
 
 /**
@@ -20,6 +21,8 @@ export class VideoPlayer {
   private currentQuality: string | null = null;
   private hideControlsTimeout: number | null = null;
   private clickTimeout: number | null = null;
+  private subtitles: SubtitleTrack[];
+  private currentSubtitle: string | null = null;
 
   constructor(container: HTMLElement | string, options: VideoPlayerOptions) {
     // Get container element
@@ -47,10 +50,12 @@ export class VideoPlayer {
       enableFullscreen: options.enableFullscreen ?? true,
       showQualitySelector: options.showQualitySelector ?? false,
       keyboardShortcuts: options.keyboardShortcuts ?? true,
+      subtitles: options.subtitles ?? [],
     } as Required<VideoPlayerOptions>;
 
     this.eventListeners = new Map();
     this.sources = Array.isArray(this.options.src) ? this.options.src : [{ src: this.options.src }];
+    this.subtitles = this.options.subtitles ?? [];
 
     // Initialize player
     this.videoElement = this.createVideoElement();
@@ -93,6 +98,20 @@ export class VideoPlayer {
     video.muted = this.options.muted;
     video.volume = this.options.volume;
     video.playbackRate = this.options.playbackRate;
+
+    // Add subtitle tracks
+    this.subtitles.forEach((subtitle) => {
+      const track = document.createElement('track');
+      track.kind = subtitle.kind ?? 'subtitles';
+      track.label = subtitle.label;
+      track.srclang = subtitle.srclang;
+      track.src = subtitle.src;
+      if (subtitle.default) {
+        track.default = true;
+        this.currentSubtitle = subtitle.srclang;
+      }
+      video.appendChild(track);
+    });
 
     return video;
   }
@@ -161,6 +180,25 @@ export class VideoPlayer {
           </div>
         </div>
         ${
+          this.subtitles.length > 0
+            ? `<div class="vp-subtitle-container">
+                <button class="vp-btn vp-subtitle" aria-label="Subtitles">
+                  <span class="material-symbols-outlined">closed_caption</span>
+                </button>
+                <div class="vp-subtitle-menu" style="display: none;">
+                  <div class="vp-subtitle-menu-header">Subtitles</div>
+                  <button class="vp-subtitle-menu-item" data-lang="off">Off</button>
+                  ${this.subtitles
+                    .map(
+                      (s) =>
+                        `<button class="vp-subtitle-menu-item" data-lang="${s.srclang}">${s.label}</button>`
+                    )
+                    .join('')}
+                </div>
+              </div>`
+            : ''
+        }
+        ${
           this.options.enablePIP
             ? '<button class="vp-btn vp-pip" aria-label="Picture in Picture"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>'
             : ''
@@ -178,6 +216,7 @@ export class VideoPlayer {
     this.attachControlsListeners();
     this.updateQualityMenuUI();
     this.updateSpeedMenuUI();
+    this.updateSubtitleMenuUI();
   }
 
   /**
@@ -270,6 +309,41 @@ export class VideoPlayer {
         const target = e.target as HTMLElement;
         if (!target.closest('.vp-speed-container')) {
           this.toggleSpeedMenu();
+        }
+      }
+    });
+
+    // Subtitle menu
+    const subtitleBtn = this.controlsContainer.querySelector('.vp-subtitle');
+    subtitleBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSubtitleMenu();
+    });
+
+    // Subtitle selection from menu
+    const subtitleItems = this.controlsContainer.querySelectorAll('.vp-subtitle-menu-item');
+    subtitleItems.forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const lang = target.getAttribute('data-lang');
+        if (lang) {
+          if (lang === 'off') {
+            this.disableSubtitles();
+          } else {
+            this.setSubtitle(lang);
+          }
+          this.toggleSubtitleMenu();
+        }
+      });
+    });
+
+    // Close subtitle menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const subtitleMenu = this.controlsContainer?.querySelector('.vp-subtitle-menu') as HTMLElement;
+      if (subtitleMenu && subtitleMenu.style.display !== 'none') {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.vp-subtitle-container')) {
+          this.toggleSubtitleMenu();
         }
       }
     });
@@ -645,6 +719,41 @@ export class VideoPlayer {
   }
 
   /**
+   * Toggle subtitle menu
+   */
+  private toggleSubtitleMenu(): void {
+    if (!this.controlsContainer) return;
+
+    const subtitleMenu = this.controlsContainer.querySelector('.vp-subtitle-menu') as HTMLElement;
+    if (!subtitleMenu) return;
+
+    const isVisible = subtitleMenu.style.display !== 'none';
+    subtitleMenu.style.display = isVisible ? 'none' : 'block';
+
+    // Update active subtitle item when opening
+    if (!isVisible) {
+      this.updateSubtitleMenuUI();
+    }
+  }
+
+  /**
+   * Update subtitle menu UI to show active subtitle
+   */
+  private updateSubtitleMenuUI(): void {
+    if (!this.controlsContainer) return;
+
+    const items = this.controlsContainer.querySelectorAll('.vp-subtitle-menu-item');
+    items.forEach((item) => {
+      const lang = item.getAttribute('data-lang');
+      if (lang === this.currentSubtitle || (lang === 'off' && !this.currentSubtitle)) {
+        item.classList.add('vp-active');
+      } else {
+        item.classList.remove('vp-active');
+      }
+    });
+  }
+
+  /**
    * Update play/pause button
    */
   private updatePlayPauseUI(): void {
@@ -840,6 +949,45 @@ export class VideoPlayer {
 
     this.updateQualityMenuUI();
     this.emitEvent('qualitychange');
+  }
+
+  /**
+   * Set subtitle track
+   */
+  public setSubtitle(lang: string): void {
+    const tracks = this.videoElement.textTracks;
+    
+    // Disable all tracks first
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i]!.mode = 'hidden';
+    }
+
+    // Enable the selected track
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i]!;
+      if (track.language === lang) {
+        track.mode = 'showing';
+        this.currentSubtitle = lang;
+        this.updateSubtitleMenuUI();
+        this.emitEvent('subtitlechange');
+        return;
+      }
+    }
+  }
+
+  /**
+   * Disable all subtitles
+   */
+  public disableSubtitles(): void {
+    const tracks = this.videoElement.textTracks;
+    
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i]!.mode = 'hidden';
+    }
+
+    this.currentSubtitle = null;
+    this.updateSubtitleMenuUI();
+    this.emitEvent('subtitlechange');
   }
 
   /**

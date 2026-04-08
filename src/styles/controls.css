@@ -349,3 +349,61 @@
   left: 12px;
   font-size: 16px;
 }
+
+/* Subtitle Menu */
+.vp-subtitle-container {
+  position: relative;
+}
+
+.vp-subtitle-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 6px;
+  padding: 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.vp-subtitle-menu-header {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vp-subtitle-menu-item {
+  width: 100%;
+  padding: 10px 16px 10px 32px;
+  border: 0;
+  background: transparent;
+  color: white;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+  position: relative;
+  font-family: var(--font-source-regular);
+}
+
+.vp-subtitle-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.vp-subtitle-menu-item.vp-active {
+  color: var(--color-primary-500);
+  font-weight: 500;
+}
+
+.vp-subtitle-menu-item.vp-active::before {
+  content: 'check';
+  font-family: 'Material Symbols Outlined';
+  position: absolute;
+  left: 12px;
+  font-size: 16px;
+}

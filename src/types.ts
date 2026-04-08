@@ -28,6 +28,8 @@ export interface VideoPlayerOptions {
   showQualitySelector?: boolean;
   /** Keyboard shortcuts enabled (default: true) */
   keyboardShortcuts?: boolean;
+  /** Subtitle tracks */
+  subtitles?: SubtitleTrack[];
 }
 
 /**
@@ -38,6 +40,17 @@ export interface VideoSource {
   type?: string;
   quality?: string;
   label?: string;
+}
+
+/**
+ * Subtitle track
+ */
+export interface SubtitleTrack {
+  src: string;
+  label: string;
+  srclang: string;
+  kind?: 'subtitles' | 'captions';
+  default?: boolean;
 }
 
 /**
@@ -74,7 +87,8 @@ export type PlayerEventType =
   | 'error'
   | 'fullscreenchange'
   | 'pipchange'
-  | 'qualitychange';
+  | 'qualitychange'
+  | 'subtitlechange';
 
 /**
  * Event callback function
