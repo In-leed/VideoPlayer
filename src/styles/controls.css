@@ -30,19 +30,20 @@
 
 /* Buttons */
 .vp-btn {
-  background: transparent;
-  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 40px;
   height: 40px;
-  transition: background-color 150ms ease-in-out;
+  transition: all 150ms ease-in-out;
   color: white;
-  background-color: transparent;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .vp-btn .material-symbols-outlined {
@@ -50,15 +51,35 @@
 }
 
 .vp-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .vp-btn:active {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .vp-btn:focus {
   outline: none;
+}
+
+/* Volume button inside glass container */
+.vp-volume-container .vp-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-width: 24px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.vp-volume-container .vp-btn:hover {
+  background-color: transparent;
+}
+
+.vp-volume-container .vp-btn:active {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Volume Container */
@@ -66,6 +87,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 40px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: all 150ms ease-in-out;
+}
+
+.vp-volume-container:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Volume Slider */
@@ -148,6 +182,12 @@
   font-variant-numeric: tabular-nums;
   color: white;
   font-weight: 500;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 /* Spacer */
