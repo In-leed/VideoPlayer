@@ -7,11 +7,9 @@
   opacity: 0;
   transition: opacity 50ms ease-in-out;
   color: white;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.85) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
-    transparent 100%
+  background: var(
+    --vp-controls-bg,
+    linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)
   );
   padding: 40px 16px 12px;
   pointer-events: none;
@@ -30,18 +28,18 @@
 
 /* Buttons */
 .vp-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--vp-button-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--vp-button-border, rgba(255, 255, 255, 0.2));
   cursor: pointer;
   padding: 6px 10px;
-  border-radius: 22px;
+  border-radius: var(--vp-button-border-radius, 22px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 40px;
   height: 40px;
   transition: all 150ms ease-in-out;
-  color: white;
+  color: var(--vp-button-color, white);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
@@ -51,8 +49,8 @@
 }
 
 .vp-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--vp-button-bg-hover, rgba(255, 255, 255, 0.2));
+  border-color: var(--vp-button-border, rgba(255, 255, 255, 0.3));
 }
 
 .vp-btn:active {
@@ -86,9 +84,9 @@
 .vp-volume-container {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 22px;
+  background: var(--vp-button-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--vp-button-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--vp-button-border-radius, 22px);
   padding: 0 10px;
   height: 40px;
   backdrop-filter: blur(20px) saturate(180%);
@@ -97,17 +95,17 @@
 }
 
 .vp-volume-container:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--vp-button-bg-hover, rgba(255, 255, 255, 0.15));
+  border-color: var(--vp-button-border, rgba(255, 255, 255, 0.3));
 }
 
 /* Right Controls Container */
 .vp-right-controls {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 22px;
+  background: var(--vp-button-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--vp-button-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--vp-button-border-radius, 22px);
   height: 40px;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -115,8 +113,8 @@
 }
 
 .vp-right-controls:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--vp-button-bg-hover, rgba(255, 255, 255, 0.15));
+  border-color: var(--vp-button-border, rgba(255, 255, 255, 0.3));
 }
 
 /* Buttons inside right controls glass container */
@@ -167,7 +165,7 @@
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  background-color: white;
+  background-color: var(--vp-volume-color, white);
   transition: all 150ms ease-in-out;
   margin-top: -5px;
 }
@@ -178,7 +176,7 @@
   border-radius: 50%;
   cursor: pointer;
   border: 0;
-  background-color: white;
+  background-color: var(--vp-volume-color, white);
   transition: all 150ms ease-in-out;
 }
 
@@ -198,8 +196,8 @@
   background: rgba(255, 255, 255, 0.3);
   background-image: linear-gradient(
     to right,
-    white 0%,
-    white var(--volume, 100%),
+    var(--vp-volume-color, white) 0%,
+    var(--vp-volume-color, white) var(--volume, 100%),
     transparent var(--volume, 100%)
   );
 }
@@ -209,8 +207,8 @@
   background: rgba(255, 255, 255, 0.3);
   background-image: linear-gradient(
     to right,
-    white 0%,
-    white var(--volume, 100%),
+    var(--vp-volume-color, white) 0%,
+    var(--vp-volume-color, white) var(--volume, 100%),
     transparent var(--volume, 100%)
   );
 }
@@ -221,11 +219,11 @@
   white-space: nowrap;
   user-select: none;
   font-variant-numeric: tabular-nums;
-  color: white;
+  color: var(--vp-button-color, white);
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 22px;
+  background: var(--vp-button-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--vp-button-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--vp-button-border-radius, 22px);
   padding: 0 12px;
   height: 40px;
   display: flex;
@@ -254,7 +252,7 @@
   bottom: calc(100% + 8px);
   right: 0;
   min-width: 160px;
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: var(--vp-menu-bg, rgba(0, 0, 0, 0.95));
   border-radius: 6px;
   padding: 8px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -276,7 +274,7 @@
   padding: 10px 16px 10px 32px;
   border: 0;
   background: transparent;
-  color: white;
+  color: var(--vp-menu-color, white);
   text-align: left;
   font-size: 14px;
   cursor: pointer;
@@ -286,11 +284,11 @@
 }
 
 .vp-settings-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--vp-menu-item-hover-bg, rgba(255, 255, 255, 0.15));
 }
 
 .vp-settings-menu-item.vp-active {
-  color: var(--color-primary-500);
+  color: var(--vp-active-menu-item-color, var(--vp-primary-color, var(--color-primary-500)));
   font-weight: 500;
 }
 
@@ -312,7 +310,7 @@
   bottom: calc(100% + 8px);
   right: 0;
   min-width: 140px;
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: var(--vp-menu-bg, rgba(0, 0, 0, 0.95));
   border-radius: 6px;
   padding: 8px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -334,7 +332,7 @@
   padding: 10px 16px 10px 32px;
   border: 0;
   background: transparent;
-  color: white;
+  color: var(--vp-menu-color, white);
   text-align: left;
   font-size: 14px;
   cursor: pointer;
@@ -344,11 +342,11 @@
 }
 
 .vp-speed-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--vp-menu-item-hover-bg, rgba(255, 255, 255, 0.15));
 }
 
 .vp-speed-menu-item.vp-active {
-  color: var(--color-primary-500);
+  color: var(--vp-active-menu-item-color, var(--vp-primary-color, var(--color-primary-500)));
   font-weight: 500;
 }
 
@@ -370,7 +368,7 @@
   bottom: calc(100% + 8px);
   right: 0;
   min-width: 160px;
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: var(--vp-menu-bg, rgba(0, 0, 0, 0.95));
   border-radius: 6px;
   padding: 8px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -392,7 +390,7 @@
   padding: 10px 16px 10px 32px;
   border: 0;
   background: transparent;
-  color: white;
+  color: var(--vp-menu-color, white);
   text-align: left;
   font-size: 14px;
   cursor: pointer;
@@ -402,11 +400,11 @@
 }
 
 .vp-subtitle-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--vp-menu-item-hover-bg, rgba(255, 255, 255, 0.15));
 }
 
 .vp-subtitle-menu-item.vp-active {
-  color: var(--color-primary-500);
+  color: var(--vp-active-menu-item-color, var(--vp-primary-color, var(--color-primary-500)));
   font-weight: 500;
 }
 

@@ -77,6 +77,10 @@ interface VideoPlayerOptions {
   theme?: 'light' | 'dark' | 'auto';     // Theme (default: 'dark')
   showQualitySelector?: boolean;          // Show quality selector (default: false)
   keyboardShortcuts?: boolean;            // Enable shortcuts (default: true)
+  subtitles?: SubtitleTrack[];            // Subtitle tracks
+  enableThumbnails?: boolean;             // Enable thumbnails (default: false)
+  thumbnailInterval?: number;             // Thumbnail interval in seconds (default: 5)
+  customStyles?: CustomStyleOptions;      // Custom colors and styling
 }
 ```
 
@@ -268,6 +272,149 @@ export default {
   },
 }
 ```
+
+## 🎨 Custom Styling
+
+The video player supports extensive customization through the `customStyles` option, allowing you to change colors, button styles, and other visual elements without modifying CSS files.
+
+### Basic Example
+
+```typescript
+const player = new VideoPlayer('#player', {
+  src: 'video.mp4',
+  controls: true,
+  customStyles: {
+    primaryColor: '#ff6b6b',
+    buttonBackground: 'rgba(255, 107, 107, 0.2)',
+    buttonBackgroundHover: 'rgba(255, 107, 107, 0.35)',
+    buttonBorderRadius: '12px',
+    progressColor: '#ff6b6b',
+  }
+});
+```
+
+### Available Custom Style Options
+
+```typescript
+interface CustomStyleOptions {
+  // Primary accent color (used throughout the player)
+  primaryColor?: string;
+  
+  // Button styling
+  buttonBackground?: string;        // Button background color
+  buttonBackgroundHover?: string;   // Button background on hover
+  buttonColor?: string;             // Button icon/text color
+  buttonBorder?: string;            // Button border color
+  buttonBorderRadius?: string;      // Button corner radius (e.g., '8px', '50%')
+  
+  // Progress bar
+  progressColor?: string;           // Progress bar fill color
+  progressBackground?: string;      // Progress bar background
+  
+  // Volume slider
+  volumeColor?: string;             // Volume slider color
+  
+  // Dropdown menus (quality, speed, subtitles)
+  menuBackground?: string;          // Menu background color
+  menuColor?: string;               // Menu text color
+  menuItemHoverBackground?: string; // Menu item hover background
+  activeMenuItemColor?: string;     // Active menu item color
+  
+  // Controls overlay
+  controlsBackground?: string;      // Controls gradient background
+}
+```
+
+### Complete Customization Example
+
+```typescript
+const player = new VideoPlayer('#player', {
+  src: 'your-video.mp4',
+  controls: true,
+  customStyles: {
+    // Brand color throughout
+    primaryColor: '#00d4ff',
+    
+    // Glassmorphism buttons with cyan tint
+    buttonBackground: 'rgba(0, 212, 255, 0.15)',
+    buttonBackgroundHover: 'rgba(0, 212, 255, 0.25)',
+    buttonColor: '#ffffff',
+    buttonBorder: 'rgba(0, 212, 255, 0.3)',
+    buttonBorderRadius: '16px',
+    
+    // Matching progress bar
+    progressColor: '#00d4ff',
+    progressBackground: 'rgba(255, 255, 255, 0.2)',
+    
+    // Volume slider to match
+    volumeColor: '#00d4ff',
+    
+    // Dark menus with cyan accents
+    menuBackground: 'rgba(10, 10, 15, 0.98)',
+    menuColor: '#ffffff',
+    menuItemHoverBackground: 'rgba(0, 212, 255, 0.2)',
+    activeMenuItemColor: '#00d4ff',
+    
+    // Custom controls gradient
+    controlsBackground: 'linear-gradient(to top, rgba(0, 20, 30, 0.95) 0%, rgba(0, 20, 30, 0.3) 50%, transparent 100%)'
+  }
+});
+```
+
+### Preset Examples
+
+#### Netflix Style
+
+```typescript
+customStyles: {
+  primaryColor: '#e50914',
+  buttonBackground: 'rgba(229, 9, 20, 0.1)',
+  buttonBackgroundHover: 'rgba(229, 9, 20, 0.2)',
+  buttonBorderRadius: '4px',
+  progressColor: '#e50914',
+  menuBackground: 'rgba(0, 0, 0, 0.95)',
+  activeMenuItemColor: '#e50914',
+}
+```
+
+#### YouTube Style
+
+```typescript
+customStyles: {
+  primaryColor: '#ff0000',
+  buttonBackground: 'transparent',
+  buttonBackgroundHover: 'rgba(255, 255, 255, 0.1)',
+  buttonBorder: 'transparent',
+  buttonBorderRadius: '50%',
+  progressColor: '#ff0000',
+  progressBackground: 'rgba(255, 255, 255, 0.4)',
+  volumeColor: '#ffffff',
+}
+```
+
+#### Modern Minimal
+
+```typescript
+customStyles: {
+  primaryColor: '#6366f1',
+  buttonBackground: 'rgba(99, 102, 241, 0.08)',
+  buttonBackgroundHover: 'rgba(99, 102, 241, 0.15)',
+  buttonBorder: 'rgba(99, 102, 241, 0.2)',
+  buttonBorderRadius: '10px',
+  progressColor: '#6366f1',
+  menuBackground: 'rgba(255, 255, 255, 0.98)',
+  menuColor: '#1f2937',
+  activeMenuItemColor: '#6366f1',
+}
+```
+
+### Tips
+
+- Colors can be in any CSS format: hex (`#ff6b6b`), rgb (`rgb(255, 107, 107)`), rgba (`rgba(255, 107, 107, 0.5)`), or named colors
+- Use CSS gradients for `controlsBackground` to create custom overlay effects
+- Border radius accepts any CSS unit: `px`, `rem`, `%`
+- All options are optional - only specify what you want to customize
+- Custom styles work with both light and dark themes
 
 ## 🛠️ Development
 

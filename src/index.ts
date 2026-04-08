@@ -11,6 +11,8 @@ export type {
   PlayerEventType,
   EventCallback,
   PlayerError,
+  CustomStyleOptions,
+  SubtitleTrack,
 } from './types';
 export { initTheme, setTheme, toggleTheme, getCurrentTheme, watchSystemTheme } from './theme';
 export type { Theme } from './theme';

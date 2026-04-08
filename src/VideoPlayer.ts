@@ -59,6 +59,7 @@ export class VideoPlayer {
       subtitles: options.subtitles ?? [],
       enableThumbnails: options.enableThumbnails ?? false,
       thumbnailInterval: options.thumbnailInterval ?? 5,
+      customStyles: options.customStyles,
     } as Required<VideoPlayerOptions>;
 
     this.eventListeners = new Map();
@@ -261,7 +262,9 @@ export class VideoPlayer {
     });
 
     // Progress hover preview
-    const progressContainer = this.controlsContainer.querySelector('.vp-progress-container') as HTMLElement;
+    const progressContainer = this.controlsContainer.querySelector(
+      '.vp-progress-container'
+    ) as HTMLElement;
     progressContainer?.addEventListener('mousemove', (e) => this.handleProgressHover(e));
     progressContainer?.addEventListener('mouseleave', () => this.hideProgressPreview());
 
@@ -564,7 +567,7 @@ export class VideoPlayer {
    */
   private adjustSubtitlePosition(controlsVisible: boolean): void {
     const tracks = this.videoElement.textTracks;
-    
+
     for (let i = 0; i < tracks.length; i++) {
       const track = tracks[i];
       if (track && track.mode === 'showing' && track.cues) {
@@ -606,6 +609,39 @@ export class VideoPlayer {
    */
   private applyTheme(): void {
     this.container.classList.add('vp-container');
+    this.applyCustomStyles();
+  }
+
+  /**
+   * Apply custom styles from options
+   */
+  private applyCustomStyles(): void {
+    if (!this.options.customStyles) return;
+
+    const styles = this.options.customStyles;
+    const styleMap: Record<string, string | undefined> = {
+      '--vp-primary-color': styles.primaryColor,
+      '--vp-button-bg': styles.buttonBackground,
+      '--vp-button-bg-hover': styles.buttonBackgroundHover,
+      '--vp-button-color': styles.buttonColor,
+      '--vp-button-border': styles.buttonBorder,
+      '--vp-button-border-radius': styles.buttonBorderRadius,
+      '--vp-progress-color': styles.progressColor,
+      '--vp-progress-bg': styles.progressBackground,
+      '--vp-controls-bg': styles.controlsBackground,
+      '--vp-volume-color': styles.volumeColor,
+      '--vp-menu-bg': styles.menuBackground,
+      '--vp-menu-color': styles.menuColor,
+      '--vp-menu-item-hover-bg': styles.menuItemHoverBackground,
+      '--vp-active-menu-item-color': styles.activeMenuItemColor,
+    };
+
+    // Apply custom CSS variables to the container
+    Object.entries(styleMap).forEach(([property, value]) => {
+      if (value) {
+        this.container.style.setProperty(property, value);
+      }
+    });
   }
 
   /**
@@ -773,12 +809,12 @@ export class VideoPlayer {
     if (!speedMenu) return;
 
     const isVisible = speedMenu.style.display !== 'none';
-    
+
     // Close all other popups first
     if (!isVisible) {
       this.closeAllPopups();
     }
-    
+
     speedMenu.style.display = isVisible ? 'none' : 'block';
 
     // Update active speed item when opening
@@ -814,12 +850,12 @@ export class VideoPlayer {
     if (!subtitleMenu) return;
 
     const isVisible = subtitleMenu.style.display !== 'none';
-    
+
     // Close all other popups first
     if (!isVisible) {
       this.closeAllPopups();
     }
-    
+
     subtitleMenu.style.display = isVisible ? 'none' : 'block';
 
     // Update active subtitle item when opening
@@ -853,7 +889,9 @@ export class VideoPlayer {
 
     const progressContainer = e.currentTarget as HTMLElement;
     const preview = this.controlsContainer.querySelector('.vp-progress-preview') as HTMLElement;
-    const previewTime = this.controlsContainer.querySelector('.vp-progress-preview-time') as HTMLElement;
+    const previewTime = this.controlsContainer.querySelector(
+      '.vp-progress-preview-time'
+    ) as HTMLElement;
     if (!preview || !previewTime) return;
 
     // Calculate position
@@ -871,11 +909,11 @@ export class VideoPlayer {
 
     // Position preview
     const previewWidth = preview.offsetWidth;
-    let leftPos = (e.clientX - rect.left) - (previewWidth / 2);
-    
+    let leftPos = e.clientX - rect.left - previewWidth / 2;
+
     // Keep preview within bounds
     leftPos = Math.max(0, Math.min(leftPos, rect.width - previewWidth));
-    
+
     preview.style.left = `${leftPos}px`;
     preview.style.display = 'block';
   }
@@ -924,9 +962,9 @@ export class VideoPlayer {
       tempVideo.crossOrigin = 'anonymous';
       tempVideo.muted = true;
       tempVideo.preload = 'metadata';
-      
+
       let resolved = false;
-      
+
       const cleanup = () => {
         tempVideo.removeEventListener('seeked', captureFrame);
         tempVideo.removeEventListener('loadedmetadata', onMetadataLoaded);
@@ -937,14 +975,14 @@ export class VideoPlayer {
       const captureFrame = () => {
         if (resolved) return;
         resolved = true;
-        
+
         try {
           // Draw current frame to canvas
           ctx.drawImage(tempVideo, 0, 0, this.thumbnailCanvas!.width, this.thumbnailCanvas!.height);
-          
+
           // Store as data URL
           const dataUrl = this.thumbnailCanvas!.toDataURL('image/jpeg', 0.7);
-          
+
           cleanup();
           resolve(dataUrl);
         } catch (error) {
@@ -988,16 +1026,18 @@ export class VideoPlayer {
   private async updateThumbnailPreview(time: number): Promise<void> {
     if (!this.options.enableThumbnails || !this.controlsContainer) return;
 
-    const thumbnail = this.controlsContainer.querySelector('.vp-progress-preview-thumbnail') as HTMLElement;
+    const thumbnail = this.controlsContainer.querySelector(
+      '.vp-progress-preview-thumbnail'
+    ) as HTMLElement;
     if (!thumbnail) return;
 
     // Find nearest thumbnail time based on interval
     const interval = this.options.thumbnailInterval;
     const nearestTime = Math.floor(time / interval) * interval;
-    
+
     // Check if we already have this thumbnail cached
     let thumbnailUrl = this.thumbnailCache.get(nearestTime) || null;
-    
+
     if (!thumbnailUrl) {
       // Capture on-demand if not cached
       thumbnailUrl = await this.captureThumbnailOnDemand(nearestTime);
@@ -1005,7 +1045,7 @@ export class VideoPlayer {
         this.thumbnailCache.set(nearestTime, thumbnailUrl);
       }
     }
-    
+
     if (thumbnailUrl) {
       thumbnail.style.width = '160px';
       thumbnail.style.height = '90px';
@@ -1043,12 +1083,12 @@ export class VideoPlayer {
     if (!settingsMenu) return;
 
     const isVisible = settingsMenu.style.display !== 'none';
-    
+
     // Close all other popups first
     if (!isVisible) {
       this.closeAllPopups();
     }
-    
+
     settingsMenu.style.display = isVisible ? 'none' : 'block';
 
     // Update active quality item when opening
@@ -1068,7 +1108,7 @@ export class VideoPlayer {
 
     items.forEach((item) => {
       const quality = item.getAttribute('data-quality');
-      
+
       if (this.isAutoQuality) {
         // When in auto mode, mark "auto" as active
         if (quality === 'auto') {
@@ -1256,7 +1296,7 @@ export class VideoPlayer {
     this.isAutoQuality = true;
     this.currentQuality = 'auto';
     this.updateQualityMenuUI();
-    
+
     // Start monitoring network and adjust quality
     this.startQualityMonitoring();
   }
@@ -1368,7 +1408,7 @@ export class VideoPlayer {
       const startTime = Date.now();
       await fetch(this.videoElement.src, {
         method: 'HEAD',
-        cache: 'no-cache'
+        cache: 'no-cache',
       });
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000; // seconds
@@ -1393,7 +1433,7 @@ export class VideoPlayer {
     const tracks = this.videoElement.textTracks;
 
     // Disable all tracks first
-    for (let i = 0; i< tracks.length; i++) {
+    for (let i = 0; i < tracks.length; i++) {
       tracks[i]!.mode = 'hidden';
     }
 
@@ -1403,11 +1443,11 @@ export class VideoPlayer {
       if (track.language === lang) {
         track.mode = 'showing';
         this.currentSubtitle = lang;
-        
+
         // Adjust position immediately if controls are visible
         const controlsVisible = this.container.classList.contains('vp-controls-visible');
         this.adjustSubtitlePosition(controlsVisible);
-        
+
         this.updateSubtitleMenuUI();
         this.emitEvent('subtitlechange');
         return;

@@ -19,7 +19,7 @@
   top: 50%;
   transform: translateY(-50%);
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--vp-progress-bg, rgba(255, 255, 255, 0.3));
   pointer-events: none;
   transition: height 150ms ease-in-out;
 }
@@ -92,7 +92,7 @@
   transition: all 150ms ease-in-out;
   -webkit-appearance: none;
   appearance: none;
-  background-color: var(--color-primary-600);
+  background-color: var(--vp-progress-color, var(--vp-primary-color, var(--color-primary-600)));
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
   margin-top: -5.5px;
   position: relative;
@@ -106,7 +106,7 @@
   border: 0;
   opacity: 1;
   transition: all 150ms ease-in-out;
-  background-color: var(--color-primary-600);
+  background-color: var(--vp-progress-color, var(--vp-primary-color, var(--color-primary-600)));
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
@@ -127,8 +127,8 @@
   height: 4px;
   background: linear-gradient(
     to right,
-    var(--color-primary-600) 0%,
-    var(--color-primary-600) var(--progress, 0%),
+    var(--vp-progress-color, var(--vp-primary-color, var(--color-primary-600))) 0%,
+    var(--vp-progress-color, var(--vp-primary-color, var(--color-primary-600))) var(--progress, 0%),
     transparent var(--progress, 0%)
   );
   transition: height 150ms ease-in-out;
@@ -139,8 +139,8 @@
   height: 4px;
   background: linear-gradient(
     to right,
-    var(--color-primary-600) 0%,
-    var(--color-primary-600) var(--progress, 0%),
+    var(--vp-progress-color, var(--vp-primary-color, var(--color-primary-600))) 0%,
+    var(--vp-progress-color, var(--vp-primary-color, var(--color-primary-600))) var(--progress, 0%),
     transparent var(--progress, 0%)
   );
   transition: height 150ms ease-in-out;

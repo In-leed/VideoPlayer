@@ -1,4 +1,38 @@
 /**
+ * Custom style options for colors and button appearance
+ */
+export interface CustomStyleOptions {
+  /** Primary color (used for accents and highlights) */
+  primaryColor?: string;
+  /** Button background color */
+  buttonBackground?: string;
+  /** Button background color on hover */
+  buttonBackgroundHover?: string;
+  /** Button text/icon color */
+  buttonColor?: string;
+  /** Button border color */
+  buttonBorder?: string;
+  /** Button border radius */
+  buttonBorderRadius?: string;
+  /** Progress bar color */
+  progressColor?: string;
+  /** Progress bar background color */
+  progressBackground?: string;
+  /** Controls background gradient */
+  controlsBackground?: string;
+  /** Volume slider color */
+  volumeColor?: string;
+  /** Menu background color */
+  menuBackground?: string;
+  /** Menu text color */
+  menuColor?: string;
+  /** Menu item hover background */
+  menuItemHoverBackground?: string;
+  /** Active menu item color */
+  activeMenuItemColor?: string;
+}
+
+/**
  * Video player configuration options
  */
 export interface VideoPlayerOptions {
@@ -34,6 +68,8 @@ export interface VideoPlayerOptions {
   enableThumbnails?: boolean;
   /** Thumbnail capture interval in seconds (default: 5) */
   thumbnailInterval?: number;
+  /** Custom style options for colors and buttons */
+  customStyles?: CustomStyleOptions;
 }
 
 /**
