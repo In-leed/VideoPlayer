@@ -7,6 +7,7 @@ A modern, feature-rich HTML5 video player library built with TypeScript, Tailwin
 - 🎯 **TypeScript** - Full type safety and IntelliSense support
 - � **Tailwind CSS** - Modern utility-first styling
 - 🎨 **Custom Controls** - Beautiful, customizable player controls
+- 📱 **Split Controls** - Top and bottom control bars for better mobile UX
 - ⌨️ **Keyboard Shortcuts** - YouTube-style keyboard navigation
 - 📱 **Responsive** - Works perfectly on all devices
 - 🎭 **Themes** - Built-in light, dark, and auto themes
@@ -490,6 +491,95 @@ const state = player.getState();
 console.log(`Playing: ${state.playing}`);
 console.log(`Time: ${state.currentTime}/${state.duration}`);
 ```
+
+## 📱 Responsive Design
+
+The video player features a comprehensive responsive design system that provides optimal viewing experiences across all devices and screen sizes.
+
+### Key Features
+
+- **Multi-Breakpoint System**: Optimized layouts for phones, tablets, and desktops
+- **Split Controls Layout**: Top and bottom control bars for better mobile accessibility
+- **Touch-Optimized Interface**: Larger touch targets (44×44px) for touch devices
+- **Orientation Support**: Adaptive layouts for portrait and landscape modes
+- **Fullscreen Responsive**: Enhanced controls in fullscreen mode on mobile
+- **High DPI Support**: Retina-optimized for crisp visuals on high-resolution displays
+- **Accessibility**: Respects `prefers-reduced-motion` for users with motion sensitivity
+
+### Split Controls Architecture
+
+The player uses a responsive controls system that adapts to device size:
+
+**Desktop (>768px) - Single Control Bar**
+- All controls in one bottom bar for desktop familiarity
+- Settings, playback, volume, and time in a single unified location
+- Spacer element keeps settings grouped on the right
+
+**Mobile (≤768px) - Split Layout**
+- **Top Bar**: Settings, quality, speed, subtitles, PiP, and fullscreen buttons
+- **Bottom Bar**: Playback controls (play/pause, volume), progress bar, time display
+- Gradient overlays that don't obstruct video content
+- Optimized for thumb reach on mobile devices
+
+This adaptive design reduces clutter on mobile while maintaining desktop familiarity, matching modern video player patterns. The split automatically activates based on screen size with no configuration needed.
+
+### Breakpoints
+
+| Device | Screen Width | Optimizations |
+|--------|--------------|---------------|
+| Extra Small | ≤ 480px | Compact controls, hidden volume slider |
+| Small | 481-640px | Touch-friendly sizing |
+| Medium | 641-768px | Tablet-optimized layout |
+| Large | 769-1024px | Desktop experience |
+| XXL | ≥ 1921px | Enhanced for 4K displays |
+
+### Touch Device Features
+
+On touch-enabled devices, the player automatically:
+- Increases minimum touch target size to 44×44px (WCAG AAA)
+- Enlarges the progress bar for easier scrubbing
+- Removes tap delay for instant response
+- Prevents unwanted text selection
+
+### Orientation Handling
+
+**Portrait Mode (≤ 768px)**
+- Optimized spacing and larger controls
+- Full-width settings menu with bottom-sheet style
+- Enhanced subtitle positioning
+
+**Landscape Mode (height ≤ 600px)**
+- Compact controls to maximize video viewing area
+- Smaller subtitles to avoid obstruction
+- Condensed settings menu
+
+### Implementation
+
+The responsive design is built-in and requires no additional configuration. Just ensure your HTML includes the viewport meta tag:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+
+### Responsive Container
+
+For best results, wrap the player in a responsive container:
+
+```css
+.video-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .video-wrapper {
+    padding: 0.5rem;
+  }
+}
+```
+
+For detailed information about the responsive design system, see [RESPONSIVE_DESIGN.md](docs/RESPONSIVE_DESIGN.md).
 
 ## 🤝 Contributing
 

@@ -1,32 +1,466 @@
-/* Responsive Media Queries */
-@media (max-width: 640px) {
-  .vp-controls {
-    padding: 16px 8px 8px;
+/* ========================================
+   Responsive Design System
+   ======================================== */
+
+/* Touch Devices - Larger touch targets */
+@media (hover: none) and (pointer: coarse) {
+  .vp-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .vp-progress-container {
+    height: 32px;
+  }
+
+  .vp-progress-container::before {
+    height: 5px;
+  }
+
+  .vp-progress::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  .vp-progress::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  .vp-settings-menu-item {
+    min-height: 44px;
+  }
+}
+
+/* ========================================
+   Extra Small Devices (Portrait Phones)
+   max-width: 480px
+   ======================================== */
+@media (max-width: 480px) {
+  .vp-container {
+    border-radius: 4px;
+  }
+
+  /* Top Controls - visible on mobile */
+  .vp-controls-top {
+    padding: 10px 8px;
+  }
+
+  .vp-top-right {
+    height: 36px;
+    padding: 0 8px;
+  }
+
+  /* Hide time in top on very small screens */
+  .vp-time-top {
+    display: none !important;
+  }
+
+  /* Bottom Controls */
+  .vp-controls-bottom {
+    padding: 0 8px 8px;
+  }
+
+  .vp-controls-bottom-bar {
+    gap: 4px;
   }
 
   .vp-btn {
-    min-width: 32px;
-    height: 32px;
-    padding: 4px 8px;
+    min-width: 36px;
+    height: 36px;
+    padding: 4px 6px;
+    border-radius: 18px;
   }
 
   .vp-btn .material-symbols-outlined {
     font-size: 20px;
   }
 
-  .vp-time {
-    font-size: 11px;
+  .vp-volume-container,
+  .vp-top-right {
+    height: 36px;
+    padding: 0 8px;
+  }
+
+  /* Hide volume slider on very small screens */
+  .vp-volume-slider {
+    display: none !important;
+  }
+
+  /* Compact time display in bottom */
+  .vp-time-bottom {
+    font-size: 10px;
+    padding: 0 4px;
+  }
+
+  /* Smaller progress preview */
+  .vp-progress-preview-thumbnail {
+    min-width: 120px;
+    min-height: 67.5px;
+  }
+
+  .vp-progress-preview-time {
+    font-size: 12px;
+    padding: 4px 0;
+  }
+
+  /* Settings menu adjustments */
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
+    right: -4px;
+    min-width: 200px;
+    max-height: 60vh;
+  }
+
+  .vp-settings-menu-item,
+  .vp-speed-menu-item,
+  .vp-subtitle-menu-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .vp-settings-menu-item-text {
+    font-size: 13px;
+  }
+
+  .vp-settings-menu-item-value {
+    font-size: 12px;
+  }
+}
+
+/* ========================================
+   Small Devices (Landscape Phones)
+   481px - 640px
+   ======================================== */
+@media (min-width: 481px) and (max-width: 640px) {
+  .vp-controls-top {
+    padding: 10px 12px;
+  }
+
+  .vp-controls-bottom {
+    padding: 0 12px 10px;
+  }
+
+  .vp-controls-bottom-bar {
+    gap: 6px;
+  }
+
+  .vp-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 5px 8px;
+  }
+
+  .vp-btn .material-symbols-outlined {
+    font-size: 22px;
+  }
+
+  .vp-volume-container,
+  .vp-top-right {
+    height: 38px;
+    padding: 0 9px;
   }
 
   .vp-volume-slider {
-    width: 64px;
+    width: 60px;
   }
 
-  .vp-settings-menu {
+  .vp-time-bottom {
+    font-size: 11px;
+  }
+
+  .vp-progress-preview-thumbnail {
+    min-width: 140px;
+    min-height: 78.75px;
+  }
+
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
     right: -8px;
+    min-width: 220px;
   }
 
-  .vp-settings-menu-item {
-    padding: 12px 16px;
+  .vp-settings-menu-item,
+  .vp-speed-menu-item,
+  .vp-subtitle-menu-item {
+    padding: 11px 14px;
+  }
+}
+
+/* ========================================
+   Medium Devices (Tablets)
+   641px - 768px
+   ======================================== */
+@media (min-width: 641px) and (max-width: 768px) {
+  .vp-controls-top {
+    padding: 12px 14px;
+  }
+
+  .vp-controls-bottom {
+    padding: 0 14px 11px;
+  }
+
+  .vp-controls-bottom-bar {
+    gap: 7px;
+  }
+
+  .vp-volume-slider {
+    width: 70px;
+  }
+
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
+    min-width: 240px;
+  }
+
+  .vp-progress-preview-thumbnail {
+    min-width: 150px;
+    min-height: 84.375px;
+  }
+}
+
+/* ========================================
+   Large Tablets / Small Desktops
+   769px - 1024px
+   ======================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .vp-volume-slider {
+    width: 80px;
+  }
+
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
+    min-width: 260px;
+  }
+}
+
+/* ========================================
+   Portrait Orientation Optimizations
+   ======================================== */
+@media (orientation: portrait) and (max-width: 768px) {
+  /* Increase clickable area for progress bar */
+  .vp-progress-container {
+    height: 28px;
+  }
+
+  /* Larger controls bar for easier touch */
+  .vp-controls-bottom {
+    padding-bottom: 12px;
+  }
+
+  /* Show time in bottom on portrait */
+  .vp-time-bottom {
+    display: flex !important;
+  }
+
+  /* Optimize subtitle positioning */
+  .vp-container.vp-controls-visible .vp-video::cue {
+    bottom: 100px;
+  }
+
+  /* Full width settings menu on portrait mobile */
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
+    right: 0;
+    left: 0;
+    border-radius: 12px 12px 0 0;
+    max-height: 70vh;
+  }
+}
+
+/* ========================================
+   Landscape Orientation Optimizations
+   ======================================== */
+@media (orientation: landscape) and (max-height: 600px) {
+  .vp-controls-top {
+    padding: 8px 12px;
+  }
+
+  .vp-controls-bottom {
+    padding: 0 12px 8px;
+  }
+
+  .vp-btn {
+    min-width: 34px;
+    height: 34px;
+  }
+
+  .vp-volume-container,
+  .vp-top-right,
+  .vp-bottom-settings {
+    height: 34px;
+  }
+
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
+    max-height: 50vh;
+  }
+
+  .vp-progress-container {
+    height: 20px;
+  }
+
+  /* Compact subtitle in landscape */
+  .vp-video::cue {
+    font-size: 1em;
+  }
+
+  .vp-container.vp-controls-visible .vp-video::cue {
+    bottom: 60px;
+  }
+
+  /* Hide time in top on landscape */
+  .vp-time-top {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   High DPI / Retina Displays
+   ======================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .vp-progress-container::before {
+    height: 4.5px;
+  }
+
+  .vp-progress::-webkit-slider-thumb,
+  .vp-progress::-moz-range-thumb {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+  }
+
+  .vp-btn {
+    border-width: 1.5px;
+  }
+}
+
+/* ========================================
+   Fullscreen Responsive Adjustments
+   ======================================== */
+@media (max-width: 768px) {
+  .vp-container:fullscreen .vp-controls-top {
+    padding: 12px;
+  }
+
+  .vp-container:fullscreen .vp-controls-bottom {
+    padding: 0 12px 12px;
+  }
+
+  .vp-container:fullscreen .vp-btn {
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .vp-container:fullscreen .vp-btn .material-symbols-outlined {
+    font-size: 24px;
+  }
+
+  .vp-container:fullscreen .vp-volume-slider {
+    display: block !important;
+    width: 80px;
+  }
+
+  .vp-container:fullscreen .vp-time-bottom {
+    font-size: 13px;
+  }
+
+  .vp-container:fullscreen .vp-settings-menu,
+  .vp-container:fullscreen .vp-speed-menu,
+  .vp-container:fullscreen .vp-subtitle-menu {
+    max-height: 80vh;
+  }
+
+  /* Show time in both top and bottom in fullscreen */
+  .vp-container:fullscreen .vp-time-top {
+    display: flex !important;
+  }
+}
+
+/* ========================================
+   Very Large Screens
+   > 1920px
+   ======================================== */
+@media (min-width: 1921px) {
+  .vp-btn {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .vp-btn .material-symbols-outlined {
+    font-size: 26px;
+  }
+
+  .vp-bottom-settings {
+    height: 44px;
+  }
+
+  .vp-volume-slider {
+    width: 100px;
+  }
+
+  .vp-time-bottomtom,
+  .vp-time-top {
+    font-size: 15px;
+  }
+
+  .vp-progress-preview-thumbnail {
+    min-width: 200px;
+    min-height: 112.5px;
+  }
+
+  .vp-progress-preview-time {
+    font-size: 16px;
+  }
+
+  .vp-settings-menu,
+  .vp-speed-menu,
+  .vp-subtitle-menu {
+    min-width: 300px;
+  }
+
+  .vp-settings-menu-item,
+  .vp-speed-menu-item,
+  .vp-subtitle-menu-item {
+    padding: 14px 18px;
+    font-size: 15px;
+  }
+}
+
+/* ========================================
+   Reduced Motion Preference
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  .vp-container,
+  .vp-controls,
+  .vp-btn,
+  .vp-progress-container,
+  .vp-progress-container::before,
+  .vp-volume-slider,
+  .vp-settings-menu,
+  .vp-progress::-webkit-slider-thumb,
+  .vp-progress::-moz-range-thumb {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+@media print {
+  .vp-controls,
+  .vp-settings-menu,
+  .vp-progress-preview {
+    display: none !important;
+  }
+
+  .vp-container {
+    border: 1px solid #000;
+    page-break-inside: avoid;
   }
 }

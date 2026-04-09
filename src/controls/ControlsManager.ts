@@ -47,38 +47,54 @@ export class ControlsManager {
    * Generate controls HTML
    */
   private generateControlsHTML(): string {
+    const settingsButtons = `
+      ${this.generateQualityMenuHTML()}
+      ${this.generateSpeedMenuHTML()}
+      ${this.generateSubtitleMenuHTML()}
+      ${this.generatePIPButtonHTML()}
+      ${this.generateFullscreenButtonHTML()}
+    `;
+
     return `
-      <div class="vp-progress-container">
-        <div class="vp-progress-preview" style="display: none;">
-          ${this.options.enableThumbnails ? '<div class="vp-progress-preview-thumbnail"></div>' : ''}
-          <div class="vp-progress-preview-time">0:00</div>
+      <div class="vp-controls-top">
+        <div class="vp-top-left">
+          <span class="vp-time vp-time-top">
+            <span class="vp-current-time">0:00</span> <span class="vp-time-separator">/</span> <span class="vp-duration">0:00</span>
+          </span>
         </div>
-        <input type="range" class="vp-progress" min="0" max="100" value="0" step="0.1">
-        <div class="vp-buffer"></div>
+        <div class="vp-top-right">
+          ${settingsButtons}
+        </div>
       </div>
       <div class="vp-controls-bottom">
-        <button class="vp-btn vp-play-pause" aria-label="Play/Pause">
-          <span class="vp-icon-play material-symbols-outlined">play_arrow</span>
-          <span class="vp-icon-pause material-symbols-outlined" style="display: none;">pause</span>
-        </button>
-        <div class="vp-volume-container">
-          <button class="vp-btn vp-volume" aria-label="Volume">
-            <span class="vp-icon-volume-high material-symbols-outlined">volume_up</span>
-            <span class="vp-icon-volume-low material-symbols-outlined" style="display: none;">volume_down</span>
-            <span class="vp-icon-volume-muted material-symbols-outlined" style="display: none;">volume_off</span>
-          </button>
-          <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
+        <div class="vp-progress-container">
+          <div class="vp-progress-preview" style="display: none;">
+            ${this.options.enableThumbnails ? '<div class="vp-progress-preview-thumbnail"></div>' : ''}
+            <div class="vp-progress-preview-time">0:00</div>
+          </div>
+          <input type="range" class="vp-progress" min="0" max="100" value="0" step="0.1">
+          <div class="vp-buffer"></div>
         </div>
-        <span class="vp-time">
-          <span class="vp-current-time">0:00</span> <span class="vp-time-separator">/</span> <span class="vp-duration">0:00</span>
-        </span>
-        <div class="vp-spacer"></div>
-        <div class="vp-right-controls">
-        ${this.generateQualityMenuHTML()}
-        ${this.generateSpeedMenuHTML()}
-        ${this.generateSubtitleMenuHTML()}
-        ${this.generatePIPButtonHTML()}
-        ${this.generateFullscreenButtonHTML()}
+        <div class="vp-controls-bottom-bar">
+          <button class="vp-btn vp-play-pause" aria-label="Play/Pause">
+            <span class="vp-icon-play material-symbols-outlined">play_arrow</span>
+            <span class="vp-icon-pause material-symbols-outlined" style="display: none;">pause</span>
+          </button>
+          <div class="vp-volume-container">
+            <button class="vp-btn vp-volume" aria-label="Volume">
+              <span class="vp-icon-volume-high material-symbols-outlined">volume_up</span>
+              <span class="vp-icon-volume-low material-symbols-outlined" style="display: none;">volume_down</span>
+              <span class="vp-icon-volume-muted material-symbols-outlined" style="display: none;">volume_off</span>
+            </button>
+            <input type="range" class="vp-volume-slider" min="0" max="1" step="0.01" value="${this.options.volume}">
+          </div>
+          <span class="vp-time vp-time-bottom">
+            <span class="vp-current-time">0:00</span> <span class="vp-time-separator">/</span> <span class="vp-duration">0:00</span>
+          </span>
+          <div class="vp-spacer"></div>
+          <div class="vp-bottom-settings">
+            ${settingsButtons}
+          </div>
         </div>
       </div>
     `;

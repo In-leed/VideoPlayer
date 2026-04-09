@@ -10,6 +10,13 @@
   font-family: var(--font-source-regular);
   border: 1px solid var(--color-secondary_border);
   transition: cursor 0.3s ease;
+  /* Prevent text selection on touch devices */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  /* Improve touch responsiveness */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Hide cursor when controls are hidden */
@@ -26,6 +33,10 @@
   height: auto;
   display: block;
   cursor: pointer;
+  /* Ensure video maintains aspect ratio */
+  max-width: 100%;
+  /* Optimize video rendering */
+  object-fit: contain;
 }
 
 /* Fullscreen styles */
@@ -44,10 +55,11 @@
 .vp-video::cue {
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
-  font-size: 1.2em;
+  font-size: clamp(0.875rem, 2.5vw, 1.2em);
   font-family: var(--font-source-regular);
   line-height: 1.4;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  padding: 0.2em 0.5em;
 }
 
 /* Move subtitles above controls when visible */

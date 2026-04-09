@@ -1,18 +1,17 @@
 /* Controls Container */
 .vp-controls {
   position: absolute;
+  top: 0;
   bottom: 0;
   left: 0;
   right: 0;
   opacity: 0;
   transition: opacity 50ms ease-in-out;
   color: white;
-  background: var(
-    --vp-controls-bg,
-    linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)
-  );
-  padding: 40px 16px 12px;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .vp-container.vp-controls-visible .vp-controls {
@@ -20,10 +19,98 @@
   pointer-events: auto;
 }
 
-.vp-controls-bottom {
+/* Top Controls Bar - Hidden on Desktop by Default */
+.vp-controls-top {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
+  gap: 12px;
+}
+
+.vp-top-left {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.vp-top-right {
+  display: flex;
+  align-items: center;
+  background: var(--vp-button-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--vp-button-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--vp-button-border-radius, 22px);
+  height: 40px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: all 150ms ease-in-out;
+}
+
+.vp-top-right:hover {
+  background-color: var(--vp-button-bg-hover, rgba(255, 255, 255, 0.15));
+  border-color: var(--vp-button-border, rgba(255, 255, 255, 0.3));
+}
+
+/* Bottom Controls Bar */
+.vp-controls-bottom {
+  padding: 40px 16px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
+}
+
+.vp-controls-bottom-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* Desktop: Settings in bottom bar */
+.vp-bottom-settings {
+  display: flex;
+  align-items: center;
+  background: var(--vp-button-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--vp-button-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--vp-button-border-radius, 22px);
+  height: 40px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: all 150ms ease-in-out;
+}
+
+.vp-bottom-settings:hover {
+  background-color: var(--vp-button-bg-hover, rgba(255, 255, 255, 0.15));
+  border-color: var(--vp-button-border, rgba(255, 255, 255, 0.3));
+}
+
+/* Spacer for desktop layout */
+.vp-spacer {
+  flex: 1;
+}
+
+/* Mobile: Enable split controls (≤768px) */
+@media (max-width: 768px) {
+  .vp-controls {
+    justify-content: space-between;
+  }
+
+  .vp-controls-top {
+    display: flex;
+  }
+
+  .vp-controls-bottom {
+    padding: 0 16px 12px;
+  }
+
+  /* Hide settings from bottom on mobile (they're in top) */
+  .vp-controls-bottom-bar .vp-bottom-settings {
+    display: none;
+  }
+
+  /* Hide spacer on mobile */
+  .vp-controls-bottom-bar .vp-spacer {
+    display: none;
+  }
 }
 
 /* Buttons */
@@ -99,7 +186,7 @@
   border-color: var(--vp-button-border, rgba(255, 255, 255, 0.3));
 }
 
-/* Right Controls Container */
+/* Right Controls Container (legacy, kept for backwards compatibility) */
 .vp-right-controls {
   display: flex;
   align-items: center;
@@ -132,6 +219,27 @@
 }
 
 .vp-right-controls .vp-btn:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Buttons inside top controls glass container */
+.vp-top-right .vp-btn,
+.vp-bottom-settings .vp-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  min-width: 24px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.vp-top-right .vp-btn:hover,
+.vp-bottom-settings .vp-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.vp-top-right .vp-btn:active,
+.vp-bottom-settings .vp-btn:active {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
