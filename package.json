@@ -1,5 +1,5 @@
 {
-  "name": "@videoplayer/core",
+  "name": "@inleed-dev/videoplayer",
   "version": "0.1.0",
   "description": "Modern video player library built with TypeScript",
   "type": "module",
